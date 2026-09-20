@@ -49,7 +49,10 @@ private actor ControlledDeletion: TmuxSessionManaging {
     @MainActor static func main() async {
         let a = ServerConfig(id: "a", alias: "a"), b = ServerConfig(id: "b", alias: "b")
         let provider = ControlledProvider(), deletion = ControlledDeletion()
-        let monitor = Monitor(provider: provider, sessionManager: deletion)
+        let suite = "GPU-Monitor-tests-" + UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let monitor = Monitor(provider: provider, sessionManager: deletion, defaults: defaults)
         monitor.preferences = Preferences(servers: [a, b])
 
         let first = Task { await monitor.refresh() }
@@ -88,6 +91,24 @@ private actor ControlledDeletion: TmuxSessionManaging {
         await provider.finish("a"); await removal.value
         require(monitor.states["a"]?.isLoading == false && monitor.deletingSessions.isEmpty, "Mutation must end with refreshed state")
         print("PASS deletion waits for observations, preserves target, cleans preferences, and refreshes")
-        print("3 Monitor integration checks passed")
+
+        monitor.setServerEnabled("b", enabled: false)
+        monitor.setServerEnabled("a", enabled: false)
+        await monitor.refresh()
+        require(await provider.count() == 6, "Disabled servers must not be queried")
+        monitor.setServerEnabled("a", enabled: true)
+        await waitFor { await provider.count() == 7 }
+        require(monitor.states["b"]?.isLoading == false, "Enabling one server must not query another")
+        await provider.finish("a")
+        await waitFor { monitor.states["a"]?.isLoading == false }
+        monitor.setPaused(true)
+        require(monitor.paused, "Pause state must be published immediately")
+        monitor.setPaused(false)
+        await waitFor { await provider.count() == 8 }
+        await provider.finish("a")
+        await waitFor { monitor.states["a"]?.isLoading == false }
+        require(!monitor.paused, "Resuming must immediately refresh enabled servers")
+        print("PASS per-server enable and immediate refresh on resume")
+        print("4 Monitor integration checks passed")
     }
 }

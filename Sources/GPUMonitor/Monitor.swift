@@ -7,6 +7,7 @@ import UserNotifications
     @Published var states: [String: ServerViewState] = [:]
     @Published var aliases: [String] = []
     @Published var notificationMessage: String?
+    @Published var requestingNotifications = false
     @Published var paused = false
     @Published var lastNotice: String?
     var onChange: (() -> Void)?
@@ -18,12 +19,14 @@ import UserNotifications
     private let provider: any ObservationProvider
     private let sessionManager: any TmuxSessionManaging
     private let defaultsKey = "GPUMonitor.preferences.v1"
+    private let defaults: UserDefaults
     private var forceBaseline = false
 
-    init(provider: any ObservationProvider = SSHProvider(), sessionManager: any TmuxSessionManaging = SSHProvider()) {
+    init(provider: any ObservationProvider = SSHProvider(), sessionManager: any TmuxSessionManaging = SSHProvider(), defaults: UserDefaults = .standard) {
         self.provider = provider
         self.sessionManager = sessionManager
-        if let data = UserDefaults.standard.data(forKey: defaultsKey), let prefs = try? JSONDecoder().decode(Preferences.self, from: data) { preferences = prefs }
+        self.defaults = defaults
+        if let data = defaults.data(forKey: defaultsKey), let prefs = try? JSONDecoder().decode(Preferences.self, from: data) { preferences = prefs }
         else { preferences = Preferences() }
         super.init()
         aliases = SSHConfig.aliases()
@@ -44,8 +47,22 @@ import UserNotifications
     }
 
     func save() {
-        if let data = try? JSONEncoder().encode(preferences) { UserDefaults.standard.set(data, forKey: defaultsKey) }
+        if let data = try? JSONEncoder().encode(preferences) { defaults.set(data, forKey: defaultsKey) }
         onChange?()
+    }
+
+    func setPaused(_ value: Bool) {
+        guard paused != value else { return }
+        paused = value
+        onChange?()
+        if !value { Task { await refresh() } }
+    }
+
+    func setServerEnabled(_ id: String, enabled: Bool) {
+        guard let index = preferences.servers.firstIndex(where: { $0.id == id }) else { return }
+        preferences.servers[index].enabled = enabled
+        save()
+        if enabled { Task { await refresh(serverID: id) } }
     }
 
     func refresh(serverID: String? = nil, manual: Bool = true) async {
@@ -152,7 +169,8 @@ import UserNotifications
         guard !preferences.servers.contains(where: { $0.alias == alias && $0.container == override }) else { return "이미 등록된 서버입니다." }
         preferences.servers.append(ServerConfig(alias: alias, container: override))
         save()
-        Task { await refresh() }
+        let id = preferences.servers.last?.id
+        Task { await refresh(serverID: id) }
         return nil
     }
 
@@ -188,8 +206,11 @@ import UserNotifications
     }
 
     func setNotifications(_ enabled: Bool) {
+        guard !requestingNotifications else { return }
         if !enabled { preferences.notifications = false; save(); return }
+        requestingNotifications = true
         Task {
+            defer { requestingNotifications = false }
             do {
                 let center = UNUserNotificationCenter.current()
                 let settings = await center.notificationSettings()

@@ -10,6 +10,7 @@ import SwiftUI
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        installMainMenu()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.target = self
         statusItem.button?.action = #selector(togglePopover)
@@ -28,6 +29,29 @@ import SwiftUI
         }
         monitor.start()
         if CommandLine.arguments.contains("--show-window") { showDashboard() }
+    }
+
+    // Accessory apps also need the responder-chain Edit menu for text field and log shortcuts.
+    private func installMainMenu() {
+        let menu = NSMenu()
+        let appItem = NSMenuItem()
+        let appMenu = NSMenu(title: "GPU Monitor")
+        appMenu.addItem(withTitle: "GPU Monitor 종료", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appItem.submenu = appMenu
+        menu.addItem(appItem)
+        let editItem = NSMenuItem()
+        let edit = NSMenu(title: "편집")
+        edit.addItem(withTitle: "실행 취소", action: Selector(("undo:")), keyEquivalent: "z")
+        let redo = edit.addItem(withTitle: "다시 실행", action: Selector(("redo:")), keyEquivalent: "z")
+        redo.keyEquivalentModifierMask = [.command, .shift]
+        edit.addItem(.separator())
+        edit.addItem(withTitle: "잘라내기", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        edit.addItem(withTitle: "복사", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: "붙여넣기", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: "모두 선택", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        editItem.submenu = edit
+        menu.addItem(editItem)
+        NSApp.mainMenu = menu
     }
 
     private func updateStatusItem() {
