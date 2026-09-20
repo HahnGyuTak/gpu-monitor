@@ -20,7 +20,9 @@ import SwiftUI
         popover = NSPopover()
         popover.behavior = .transient
         popover.contentSize = MonitorAppearance.dashboardSize
-        popover.contentViewController = NSHostingController(rootView: DashboardView(monitor: monitor))
+        popover.contentViewController = NSHostingController(rootView:
+            DashboardView(monitor: monitor, openWindow: { [weak self] in self?.showDashboard() })
+                .frame(width: MonitorAppearance.dashboardSize.width, height: MonitorAppearance.dashboardSize.height))
         monitor.onChange = { [weak self] in self?.updateStatusItem() }
         updateStatusItem()
         // Age the icon even when a server stops returning snapshots.
@@ -51,6 +53,15 @@ import SwiftUI
         edit.addItem(withTitle: "모두 선택", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         editItem.submenu = edit
         menu.addItem(editItem)
+        let windowItem = NSMenuItem()
+        let windowMenu = NSMenu(title: "윈도우")
+        let show = windowMenu.addItem(withTitle: "모니터 창 열기", action: #selector(showDashboard), keyEquivalent: "0")
+        show.target = self
+        windowMenu.addItem(withTitle: "최소화", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        windowMenu.addItem(withTitle: "닫기", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        windowItem.submenu = windowMenu
+        menu.addItem(windowItem)
+        NSApp.windowsMenu = windowMenu
         NSApp.mainMenu = menu
     }
 
@@ -71,16 +82,25 @@ import SwiftUI
         }
     }
 
-    func showDashboard() {
-        let view = NSHostingController(rootView: DashboardView(monitor: monitor))
-        window = NSWindow(contentViewController: view)
-        window?.title = "GPU Monitor"
-        window?.styleMask = [.titled, .closable, .miniaturizable]
-        window?.setContentSize(MonitorAppearance.dashboardSize)
-        window?.isOpaque = false
-        window?.backgroundColor = .clear
-        window?.center()
-        window?.makeKeyAndOrderFront(nil)
+    @objc func showDashboard() {
+        popover?.performClose(nil)
+        if let window {
+            if window.isMiniaturized { window.deminiaturize(nil) }
+            window.makeKeyAndOrderFront(nil)
+        } else {
+            let controller = NSHostingController(rootView: DashboardView(monitor: monitor))
+            let dashboard = NSWindow(contentViewController: controller)
+            dashboard.title = "GPU Monitor"
+            dashboard.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+            dashboard.isReleasedWhenClosed = false
+            dashboard.contentMinSize = MonitorAppearance.minimumWindowSize
+            dashboard.setContentSize(MonitorAppearance.dashboardSize)
+            dashboard.center()
+            dashboard.setFrameAutosaveName("GPUMonitorDashboard")
+            dashboard.setFrameUsingName("GPUMonitorDashboard")
+            dashboard.makeKeyAndOrderFront(nil)
+            window = dashboard
+        }
         NSApp.activate(ignoringOtherApps: true)
     }
 

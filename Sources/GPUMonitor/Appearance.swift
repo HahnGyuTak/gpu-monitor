@@ -1,8 +1,9 @@
 import AppKit
 
-/// Neutral surfaces and one blue accent; shared by AppKit icons and SwiftUI.
+/// System surfaces and the user-selected accent; shared by AppKit and SwiftUI.
 enum MonitorAppearance {
     static let dashboardSize = NSSize(width: 520, height: 700)
+    static let minimumWindowSize = NSSize(width: 520, height: 420)
 
     private static func adaptive(light: UInt32, dark: UInt32) -> NSColor {
         NSColor(name: nil) { appearance in
@@ -14,11 +15,11 @@ enum MonitorAppearance {
     }
 
     static let accent = adaptive(light: 0x245CD6, dark: 0x8AB4FF)
-    static let background = adaptive(light: 0xF3F4F6, dark: 0x191A1E)
-    static let surface = adaptive(light: 0xFFFFFF, dark: 0x24252A)
-    static let inset = adaptive(light: 0xF4F5F7, dark: 0x2C2D33)
-    static let secondaryText = adaptive(light: 0x5A606B, dark: 0xADB3BE)
-    static let border = adaptive(light: 0xDCDFE5, dark: 0x3B3D46)
+    static let background = NSColor.windowBackgroundColor
+    static let surface = NSColor.controlBackgroundColor
+    static let inset = NSColor.textBackgroundColor
+    static let secondaryText = NSColor.secondaryLabelColor
+    static let border = NSColor.separatorColor
 
     static func iconColor(_ selection: MenuIconColor) -> NSColor {
         switch selection {

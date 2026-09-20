@@ -8,12 +8,11 @@ struct SheetHeader: View {
     let symbol: String
     let close: () -> Void
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: symbol).font(.system(size: 18, weight: .medium)).foregroundStyle(accent)
-                .frame(width: 42, height: 42).background(accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 14))
+        HStack(spacing: 10) {
+            Image(systemName: symbol).font(.title3).foregroundStyle(accent).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.system(size: 17, weight: .semibold)).lineLimit(1).help(title)
-                Text(subtitle).font(.system(size: 11)).foregroundStyle(muted).lineLimit(2)
+                Text(title).font(.headline).lineLimit(1).truncationMode(.middle).help(title)
+                Text(subtitle).font(.caption).foregroundStyle(muted).lineLimit(2)
             }
             Spacer(minLength: 0)
             GlassIconButton(symbol: "xmark", label: "닫기 · Esc", action: close).keyboardShortcut(.cancelAction)
@@ -36,48 +35,47 @@ struct AddServerView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            SheetHeader(title: "SSH 서버 추가", subtitle: "기존 SSH 설정으로 연결합니다", symbol: "server.rack") { dismiss() }
+        VStack(alignment: .leading, spacing: 16) {
+            SheetHeader(title: "SSH 서버 추가", subtitle: "SSH 별칭 또는 user@host", symbol: "server.rack") { dismiss() }
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("SSH 별칭 또는 주소").font(.system(size: 12, weight: .medium))
+                    Text("SSH 별칭 또는 주소").font(.callout.weight(.medium))
                     HStack(spacing: 8) {
                         TextField("예: training-server 또는 user@host", text: $alias)
-                            .textFieldStyle(.plain).padding(11).background(inset, in: RoundedRectangle(cornerRadius: 10))
+                            .textFieldStyle(.roundedBorder)
                             .focused($focused, equals: .alias).accessibilityLabel("SSH 별칭 또는 주소")
                         Menu {
                             ForEach(monitor.aliases, id: \.self) { name in Button(name) { alias = name; error = nil } }
                         } label: {
-                            Image(systemName: "list.bullet").frame(width: 34, height: 36)
-                        }.menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                            Text("SSH 설정")
+                        }.menuStyle(.borderedButton).fixedSize()
                             .foregroundStyle(Color(nsColor: MonitorAppearance.iconColor(monitor.preferences.menuIconColor)))
                             .disabled(monitor.aliases.isEmpty).help("SSH 설정에서 선택").accessibilityLabel("SSH 설정에서 별칭 선택")
                     }
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("조회 대상").font(.system(size: 12, weight: .medium))
+                    Text("조회 대상").font(.callout.weight(.medium))
                     MonitorSegmentedPicker(label: "조회 대상", options: [(0, "자동 감지"), (1, "SSH 호스트"), (2, "Docker")], selection: $target)
                     if target == 2 {
-                        TextField("컨테이너 이름", text: $container).textFieldStyle(.plain)
-                            .padding(11).background(inset, in: RoundedRectangle(cornerRadius: 10))
+                        TextField("컨테이너 이름", text: $container).textFieldStyle(.roundedBorder)
                             .focused($focused, equals: .container).accessibilityLabel("Docker 컨테이너 이름")
                     }
                     Text(target == 0 ? "SSH 설정의 Docker RemoteCommand를 자동 인식합니다." : (target == 1 ? "컨테이너를 거치지 않고 SSH 호스트를 조회합니다." : "해당 컨테이너 내부의 GPU와 tmux를 조회합니다."))
-                        .font(.system(size: 11)).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
-                }
-            }.padding(18).monitorCard()
-            if let error { StatusMessage(symbol: "exclamationmark.triangle", title: error, warning: true) }
-            Text("SSH 키 인증을 사용합니다. 터미널에서 한 번 연결해 호스트 키를 확인한 서버를 추가하세요.")
-                .font(.system(size: 11)).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
-            MonitorGlassGroup {
-                HStack {
-                    Button("취소") { dismiss() }.buttonStyle(MonitorButtonStyle())
-                    Spacer()
-                    Button { add() } label: { Label("서버 추가", systemImage: "plus") }
-                        .buttonStyle(MonitorButtonStyle(selected: true)).keyboardShortcut(.defaultAction).disabled(!ready)
+                        .font(.caption).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
                 }
             }
-        }.padding(22).frame(width: 470).background { DashboardBackdrop() }.font(.system(size: 13))
+            if let error { StatusMessage(symbol: "exclamationmark.triangle", title: error, warning: true) }
+            Text("SSH 키 인증을 사용합니다. 터미널에서 한 번 연결해 호스트 키를 확인한 서버를 추가하세요.")
+                .font(.caption).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
+            MonitorGlassGroup {
+                HStack {
+                    Button("취소") { dismiss() }.monitorAction()
+                    Spacer()
+                    Button { add() } label: { Label("서버 추가", systemImage: "plus") }
+                        .monitorAction(primary: true).keyboardShortcut(.defaultAction).disabled(!ready)
+                }
+            }
+        }.padding(20).frame(width: 470).background { DashboardBackdrop() }.font(.body)
             .onAppear { focused = .alias }
             .onChange(of: alias) { _ in error = nil }
             .onChange(of: container) { _ in error = nil }
@@ -120,8 +118,7 @@ struct LogView: View {
             SheetHeader(title: initialPane.session, subtitle: server.alias + " · Pane " + initialPane.window + "." + initialPane.index, symbol: "terminal") { dismiss() }
             MonitorGlassGroup {
                 HStack(spacing: 8) {
-                    Button { wrap.toggle() } label: { Label("자동 줄바꿈", systemImage: "text.word.spacing") }
-                        .buttonStyle(MonitorButtonStyle(selected: wrap)).accessibilityValue(wrap ? "켬" : "끔")
+                    Toggle("자동 줄바꿈", isOn: $wrap).toggleStyle(.checkbox).font(.callout)
                     Spacer(minLength: 0)
                     GlassIconButton(symbol: copied ? "checkmark" : "doc.on.doc", label: copied ? "로그 복사됨" : "로그 복사") {
                         NSPasteboard.general.clearContents()
@@ -150,10 +147,10 @@ struct LogView: View {
                 TimelineView(.periodic(from: .now, by: 5)) { context in
                     Text(updatedText(state.updatedAt, now: context.date)).monospacedDigit()
                 }
-            }.font(.system(size: 11)).foregroundStyle(muted)
+            }.font(.caption).foregroundStyle(muted)
             Label("읽기 전용 · 원격 터미널에 입력을 보내지 않습니다", systemImage: "lock")
-                .font(.system(size: 11)).foregroundStyle(muted)
-        }.padding(22).frame(width: 500, height: 570).background { DashboardBackdrop() }
+                .font(.caption).foregroundStyle(muted)
+        }.padding(20).frame(width: 500, height: 570).background { DashboardBackdrop() }
             .task(id: copied) {
                 guard copied else { return }
                 try? await Task.sleep(nanoseconds: 1_800_000_000)
@@ -180,16 +177,16 @@ struct LogView: View {
                             }.padding(14)
                         }
                         HStack {
-                            Text("최근 tmux 화면").font(.system(size: 11)).foregroundStyle(muted)
+                            Text("최근 tmux 화면").font(.caption).foregroundStyle(muted)
                             Spacer()
                             Button { proxy.scrollTo("log-end", anchor: .bottomLeading) } label: { Label("맨 아래", systemImage: "arrow.down.to.line") }
-                                .buttonStyle(MonitorButtonStyle(embedded: true))
+                                .buttonStyle(.borderless).controlSize(.small)
                         }.padding(.horizontal, 12).padding(.bottom, 4)
                     }.onAppear { proxy.scrollTo("log-end", anchor: .bottomLeading) }
                         .onChange(of: wrap) { _ in proxy.scrollTo("log-end", anchor: .bottomLeading) }
                 }
             }
-        }.frame(maxWidth: .infinity, maxHeight: .infinity).background(inset, in: RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(outlineColor.opacity(0.5)))
+        }.frame(maxWidth: .infinity, maxHeight: .infinity).background(inset, in: RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(outlineColor.opacity(0.5)))
     }
 }

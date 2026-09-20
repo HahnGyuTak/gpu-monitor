@@ -1,46 +1,46 @@
-# Liquid Glass dashboard
+# GPU Monitor design
 
-The popover uses a translucent canvas, readable material cards, and native Liquid Glass for the functional controls. Menu bar circles represent 1–8 GPUs in a single circle, in clockwise GPU order from 12 o’clock. The barcode layout, activity logic and saved icon options are preserved. Counts above eight have no special handling.
+The dashboard is a compact monitoring list. Controls use native macOS behavior; server readings remain on neutral, opaque system surfaces. A server is one visual group, with GPU readings aligned in rows and tmux sessions below them. The menu bar renderer is independent of this layout.
 
-## References and interpretation
+## Information and controls
 
-- [Blake Crosley — Liquid Glass SwiftUI patterns](https://blakecrosley.com/ko/blog/liquid-glass-swiftui-patterns): the article's HUD pattern informs the floating controls. It distinguishes controls from content and discusses transparency, stable digits, and reduced motion. GPU readings remain normal text; the app does not apply refracting text or mirrored numbers to monitoring data.
-- [Apple — Applying Liquid Glass to custom views](https://developer.apple.com/documentation/swiftui/applying-liquid-glass-to-custom-views): `glassEffect` renders native glass; sibling controls share a `GlassEffectContainer`.
-- [Apple — Materials](https://developer.apple.com/design/human-interface-guidelines/materials): glass is used for controls; server cards and logs use standard material.
-- [Apple — Typography](https://developer.apple.com/design/human-interface-guidelines/typography): system fonts and a clear hierarchy, with monospaced digits for live values.
+- The header contains navigation and global actions. A native segmented picker filters jobs; GPU readings remain server-wide.
+- Each server header contains its name, connection/refresh state, menu bar selection and management menu. Names truncate in the middle and expose their full value in a tooltip.
+- GPU rows share columns for index/name, utilization, VRAM and temperature. Numeric values use monospaced digits; bars are supplementary, not the sole status indication.
+- Sessions use disclosure buttons and row separators. Only the pinned job receives a selection background. **고정**, **감시** and **로그** have visible labels; selection uses native checkboxes.
+- Settings use aligned fields, section headings and separators. Supporting observation details sit in a disclosure group. No nested material cards are needed.
+- SSH setup uses standard text fields with focus rings, a labelled alias menu, a native target picker and explicit cancel/submit actions. Logs use a selectable monospaced text surface with wrapping, copy, refresh and end navigation.
 
-## Layers
+## Typography and color
 
-The canvas uses `ultraThinMaterial` with a subtle, static tint derived from the selected color. Header actions, segmented choices, sheet actions and log controls use native regular glass on macOS 26+. Embedded row actions share 30 pt hit targets and a consistent hover/pressed/selected treatment without stacking more glass on the data. Header icon actions have 36 pt targets. Settings use the same material section cards and spacing as the dashboard; sheets share a title, supporting text and close control. Server cards use `regularMaterial`, with softly inset GPU panels. There is no continuously animated background.
+Use the system font without additional font assets: `headline` for server/section titles, `body`/`callout` for readings and controls, `caption` for secondary details and `title3` for training progress. Log content uses the system monospaced font. GPU values share trailing alignment.
 
-The numeric hierarchy remains 24 pt utilization readings, a 19 pt app title, 12–13 pt primary text and at least 11 pt secondary text. Logs use a monospaced face. Errors and warnings retain their semantic red/orange descriptions.
+`NSColor.windowBackgroundColor`, `controlBackgroundColor`, `textBackgroundColor`, `secondaryLabelColor` and `separatorColor` define neutral surfaces and text roles. The existing icon color preference supplies the accent for GPU/progress bars and content icons. Error and warning states retain semantic colors and explicit text. Selected controls also have a checkmark or native selection treatment. Disabled icon actions use `disabledControlTextColor`.
 
-## One color selection
+## Materials and motion
 
-`monitorTheme` distributes the existing `menuIconColor` through the SwiftUI environment. GPU utilization and training progress bars, header/server/GPU icons and action symbols use that color. Button text stays neutral for legibility with all five accents. Blue, the original green, orange, purple and appearance-aware monochrome are available. Inactive GPU segments remain neutral; color is also accompanied by values, tooltips or selection marks.
+On macOS 26+ with Swift 6.2+, functional header and sheet buttons use native `.glass`/`.glassProminent` styles within `GlassEffectContainer`. Nonprimary buttons keep a neutral glass surface so accent-colored symbols remain legible. Content, logs, GPU rows and settings sections do not stack glass effects, gradients or shadows.
 
-The selected color changes immediately in the dashboard and its sheets. No separate theme preference is stored. The menu bar update function uses the same saved color and shape selection.
+Older systems/toolchains and Reduce Transparency use standard bordered buttons in the same layout. System surfaces are already opaque. Increased Contrast strengthens server outlines. There are no custom entrance or continuous animations; native controls handle their own motion and focus behavior.
 
-## Compatibility and accessibility
+## macOS behavior
 
-- Native glass requires macOS 26+ and a build using Xcode 26+ / Swift 6.2+. Older systems and toolchains use the same control layout with standard material.
-- Reduce Transparency uses opaque canvas, card and control surfaces.
-- Reduce Motion disables the dashboard transition and the glass interaction effect.
-- Increased Contrast adds stronger card outlines.
-- The shape/color selection UI, keyboard actions, state descriptions and scrolling settings remain available.
+The menu bar popover is 520 × 700. Its **윈도우** action opens a resizable independent window with a minimum content size of 520 × 420. The window saves its frame and is reused when reopened. Native window buttons and the AppKit Window/Edit menus provide standard close, minimize, selection and clipboard behavior.
 
-The README images show synthetic data rendered through the compatibility material path. Live native glass is separately checked in the running app; its optical effect depends on the system and background and is not captured by the offscreen view bitmap renderer.
+- `⌘0`: open the monitor window while the app is active.
+- `⌘R`, `⌘N`, `⌘,`: refresh, add a server, switch settings.
+- `⌘W`, `⌘M`, `⌘Q`: close, minimize, quit.
+- Return submits a valid server form; Escape dismisses a sheet.
 
-Regenerate the bundled app icon with `bash scripts/make-icon.sh`. The bundled app icon remains unchanged. Menu bar status icons are rendered from the current GPU state.
+Dashboard/settings navigation preserves expansion and scroll state. Hidden content does not receive input or accessibility focus. Log sheets follow a stable pane identity even when a job leaves the current filter. Destructive actions retain their native confirmations and remote fresh-state validation.
 
-## Interaction audit — 0.6.0
+## References and validation
 
-- Dashboard and settings keep their scroll and expansion state across navigation. Hidden screens do not receive input or accessibility focus.
-- Server and session headings toggle the full group. Server removal has a native destructive confirmation; remote tmux deletion retains its existing fresh-state check.
-- Empty, paused, failed and unavailable states have distinct messages. A healthy tmux response with no server is an empty session list, not a missing installation. Last-known readings remain legible after a transport failure.
-- The log sheet observes current state, follows the requested pane identity, supports wrapping/copy/refresh/end navigation and survives changes to the running filter. The sheet belongs to the stable server card, not the transient job row.
-- SSH setup labels fields explicitly and provides automatic/host/Docker choices. Whitespace-only input cannot submit. Return submits and Escape dismisses.
-- Cmd-R, Cmd-N and Cmd-comma are scoped to the visible interface. A standard AppKit Edit menu restores the responder-chain text shortcuts; Cmd-Q quits.
-- Notification authorization has a pending state to prevent overlapping requests. The test action is disabled until notifications are enabled.
+- [Apple — Materials](https://developer.apple.com/design/human-interface-guidelines/materials)
+- [Apple — Typography](https://developer.apple.com/design/human-interface-guidelines/typography)
+- [Apple — Applying Liquid Glass to custom views](https://developer.apple.com/documentation/swiftui/applying-liquid-glass-to-custom-views)
+- [Blake Crosley — Liquid Glass SwiftUI patterns](https://blakecrosley.com/ko/blog/liquid-glass-swiftui-patterns)
 
-Validation includes 61 Python/Swift checks, native and compatibility builds, synthetic light/dark renders for dashboard/settings/add/log/empty/error screens, and hands-on checks in the running app. Native menus and confirmation sheets use system rendering. Remote training jobs are not stopped or removed during UI checks. Reduce Motion, Reduce Transparency and Increased Contrast are handled in the shared modifiers; system accessibility settings are not changed as part of the audit.
+The [0.7.0 audit](design-audit.md) records observable problems and the resulting changes. README images use synthetic data rendered with the compatibility controls. Native glass is checked separately in the running app; an offscreen bitmap does not reproduce its optical effects. System accessibility preferences are handled through native behavior/shared modifiers; changing those system settings is not part of the manual test.
+
+Menu bar circle/barcode rendering, the bundled app icon and saved icon preferences are preserved. Circles cover 1–8 GPUs clockwise from 12 o’clock; counts above eight have no special handling.
