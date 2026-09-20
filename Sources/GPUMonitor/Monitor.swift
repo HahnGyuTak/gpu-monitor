@@ -32,7 +32,7 @@ import UserNotifications
     func start() {
         UNUserNotificationCenter.current().delegate = self
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.forceBaseline = true; await self?.refresh() }
+            Task { @MainActor [weak self] in self?.forceBaseline = true; await self?.refresh() }
         }
         loop = Task { [weak self] in
             while !Task.isCancelled {
@@ -231,7 +231,7 @@ import UserNotifications
         content.userInfo = ["jobKey": key]
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request) { [weak self] error in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 if let error { self?.notificationMessage = error.localizedDescription }
                 else if key == "test" { self?.notificationMessage = "테스트 알림을 macOS에 전달했습니다. 집중 모드·화면 공유 설정에 따라 배너가 숨겨질 수 있습니다." }
             }
