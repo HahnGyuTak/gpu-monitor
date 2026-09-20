@@ -26,6 +26,7 @@ extension View {
     }
     func monitorAction(primary: Bool = false) -> some View { modifier(MonitorActionModifier(primary: primary)) }
     func monitorSheetPresentation() -> some View { modifier(MonitorSheetPresentation()) }
+    func monitorTextInput(focused: Bool) -> some View { modifier(MonitorTextInput(focused: focused)) }
     func monitorSurface(_ layer: MonitorGlassLayer = .panel, radius: CGFloat = 14, selected: Bool = false) -> some View {
         background { MonitorGlassSurface(layer: layer, radius: radius, selected: selected) }
     }
@@ -39,6 +40,22 @@ private struct MonitorSheetPresentation: ViewModifier {
             if reduceTransparency { content.presentationBackground(Color(nsColor: .windowBackgroundColor)) }
             else { content.presentationBackground(.ultraThinMaterial) }
         } else { content }
+    }
+}
+
+private struct MonitorTextInput: ViewModifier {
+    let focused: Bool
+
+    func body(content: Content) -> some View {
+        content.textFieldStyle(.plain).padding(.horizontal, 10).padding(.vertical, 8)
+            .monitorSurface(.well, radius: 8)
+            .overlay {
+                if focused {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(Color(nsColor: .keyboardFocusIndicatorColor), lineWidth: 2)
+                        .allowsHitTesting(false).accessibilityHidden(true)
+                }
+            }
     }
 }
 

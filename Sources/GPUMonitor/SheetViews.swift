@@ -22,7 +22,7 @@ struct SheetHeader: View {
 
 struct AddServerView: View {
     @ObservedObject var monitor: Monitor
-    @Environment(\.dismiss) private var dismiss
+    let close: () -> Void
     @State private var alias = ""
     @State private var container = ""
     @State private var target = 0
@@ -36,20 +36,21 @@ struct AddServerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            SheetHeader(title: "SSH 서버 추가", subtitle: "SSH 별칭 또는 user@host", symbol: "server.rack") { dismiss() }
+            SheetHeader(title: "SSH 서버 추가", subtitle: "SSH 별칭 또는 user@host", symbol: "server.rack") { close() }
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("SSH 별칭 또는 주소").font(.callout.weight(.medium))
                     HStack(spacing: 8) {
                         TextField("예: training-server 또는 user@host", text: $alias)
-                            .textFieldStyle(.roundedBorder)
                             .focused($focused, equals: .alias).accessibilityLabel("SSH 별칭 또는 주소")
+                            .monitorTextInput(focused: focused == .alias)
                         Menu {
-                            ForEach(monitor.aliases, id: \.self) { name in Button(name) { alias = name; error = nil } }
+                            ForEach(monitor.aliases, id: \.self) { name in
+                                Button(name) { alias = name; error = nil; focused = .alias }
+                            }
                         } label: {
                             Text("SSH 설정")
-                        }.menuStyle(.borderedButton).fixedSize()
-                            .foregroundStyle(Color(nsColor: MonitorAppearance.iconColor(monitor.preferences.menuIconColor)))
+                        }.menuStyle(.button).monitorAction().controlSize(.large).fixedSize()
                             .disabled(monitor.aliases.isEmpty).help("SSH 설정에서 선택").accessibilityLabel("SSH 설정에서 별칭 선택")
                     }
                 }
@@ -57,8 +58,9 @@ struct AddServerView: View {
                     Text("조회 대상").font(.callout.weight(.medium))
                     MonitorSegmentedPicker(label: "조회 대상", options: [(0, "자동 감지"), (1, "SSH 호스트"), (2, "Docker")], selection: $target)
                     if target == 2 {
-                        TextField("컨테이너 이름", text: $container).textFieldStyle(.roundedBorder)
+                        TextField("컨테이너 이름", text: $container)
                             .focused($focused, equals: .container).accessibilityLabel("Docker 컨테이너 이름")
+                            .monitorTextInput(focused: focused == .container)
                     }
                     Text(target == 0 ? "SSH 설정의 Docker RemoteCommand를 자동 인식합니다." : (target == 1 ? "컨테이너를 거치지 않고 SSH 호스트를 조회합니다." : "해당 컨테이너 내부의 GPU와 tmux를 조회합니다."))
                         .font(.caption).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
@@ -69,14 +71,13 @@ struct AddServerView: View {
                 .font(.caption).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
             MonitorGlassGroup {
                 HStack {
-                    Button("취소") { dismiss() }.monitorAction()
+                    Button("취소") { close() }.monitorAction()
                     Spacer()
                     Button { add() } label: { Label("서버 추가", systemImage: "plus") }
                         .monitorAction(primary: true).keyboardShortcut(.defaultAction).disabled(!ready)
                 }
             }
         }.padding(20).frame(width: 470).background { DashboardBackdrop() }.font(.body)
-            .monitorSheetPresentation()
             .onAppear { focused = .alias }
             .onChange(of: alias) { _ in error = nil }
             .onChange(of: container) { _ in error = nil }
@@ -96,7 +97,7 @@ struct AddServerView: View {
             return
         }
         error = monitor.add(alias: alias, container: target == 1 ? "host" : (target == 2 ? container : ""))
-        if error == nil { dismiss() }
+        if error == nil { close() }
         else { focused = .alias }
     }
 }

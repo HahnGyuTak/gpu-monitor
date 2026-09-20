@@ -25,7 +25,7 @@ SwiftUI와 AppKit으로 만든 작은 메뉴바 앱입니다. 기존 SSH 설정�
 | --- | --- |
 | 여러 SSH 서버 | SSH 별칭 또는 `user@host`로 등록하고 서버별 조회 제어 |
 | GPU 상태 | GPU별 사용률, VRAM, 온도와 활성 GPU를 보여주는 분할 원 아이콘 |
-| Liquid Glass 창 | 창·서버·설정·로그에 이어지는 Glass 재질, 가독성에 따른 투명도 구분 |
+| Liquid Glass 창 | 창·서버·설정·서버 추가·로그에 이어지는 Glass 재질, 가독성에 따른 투명도 구분 |
 | 메뉴바 아이콘 | 분할 원 / 바코드 모양, 파랑·초록·주황·보라·흑백 선택 |
 | 메뉴바 서버 선택 | 서버 카드의 **메뉴바** 버튼으로 표시할 서버 선택·저장 |
 | 학습 진행률 | tmux의 tqdm, `step N/M`, `epoch N/M`과 ETA 감지 |
@@ -87,6 +87,8 @@ ssh training-server
 **전체 / 실행 / 조회**, **분할 원 / 바코드**, 서버 추가의 조회 대상은 공통 Glass 선택 컨트롤을 사용합니다. 선택한 항목은 기본 Liquid Glass 효과와 체크 표시로 구분하며 색 테두리를 그리지 않습니다. 방향키로도 바꿀 수 있고, 키보드 탐색에는 시스템 포커스 표시를 사용합니다.
 
 윈도우 배경부터 서버·설정 섹션, GPU·tmux 영역, 입력창과 로그까지 같은 Glass 재질로 연결했습니다. 창의 최하단에는 배경이 은은하게 비치는 기본 Glass 재질을 사용하고, 수치와 로그 뒤에는 더 짙은 표면을 사용합니다. 텍스트 자체는 흐리게 만들지 않습니다. 실제 창 바깥의 배경을 받는 AppKit Glass 안에 SwiftUI 화면을 넣었습니다. 선택한 서버는 기본 Glass 재질에 강조색이 스며들도록 표시하며, 메뉴바 체크 표시도 유지합니다. 메뉴바 화면도 독립 창과 같은 Glass 바탕을 쓰고, 아이콘을 다시 누르거나 바깥 클릭·Esc로 닫을 수 있습니다.
+
+**서버 추가**도 메인 창과 동일한 Glass 바탕을 사용합니다. 입력칸은 가독성을 높인 Glass 표면으로 구분하고, SSH 설정 메뉴와 조회 대상 선택·추가·취소 버튼도 공통 스타일로 맞췄습니다. Docker 입력과 오류 안내가 나타나면 창 높이가 자동 조절됩니다.
 
 - **macOS 26 이상:** 네이티브 `NSGlassEffectView` 창, `glassEffect` 콘텐츠 표면과 `.glass`·`.glassProminent` 버튼 사용.
 - **macOS 13–15:** 같은 배치의 표준 시스템 머티리얼과 macOS 컨트롤로 표시.
@@ -192,6 +194,7 @@ Sources/GPUMonitor/
   Appearance.swift          라이트·다크 팔레트와 공통 화면 크기
   GlassAppearance.swift     Glass 표면·가독성·선택 재질과 공통 컨트롤
   WindowHosting.swift       실제 창의 Glass 안에 SwiftUI 화면 배치
+  MonitorSheet.swift        서버 추가의 네이티브 Glass 시트와 수명·크기 관리
   MenuBarPanel.swift        같은 Glass를 사용하는 메뉴바 패널과 화면 배치·닫기
   Views.swift               대시보드와 상단 탐색
   ServerViews.swift         서버 목록·GPU 행·세션·작업
@@ -212,6 +215,6 @@ scripts/                    도구 환경과 릴리스 패키징
 .github/workflows/ci.yml     macOS 테스트·빌드
 ```
 
-`bash test.sh`는 Python 검사 37개와 Swift 검사 32개, 총 **69개**를 실행합니다. 실제 학습을 종료하거나 OOM을 유발하지 않으며 합성 관측과 제어된 테스트 객체로 상태 전이를 검증합니다.
+`bash test.sh`는 Python 검사 37개와 Swift 검사 35개, 총 **72개**를 실행합니다. 실제 학습을 종료하거나 OOM을 유발하지 않으며 합성 관측과 제어된 테스트 객체로 상태 전이를 검증합니다.
 
 W&B, Slurm, Kubernetes, AMD GPU, 사용자 지정 tmux 소켓과 로그인 시 자동 실행은 현재 지원하지 않습니다. W&B 같은 추가 데이터 소스를 연결할 수 있도록 `ObservationProvider` 인터페이스를 분리해 두었습니다.

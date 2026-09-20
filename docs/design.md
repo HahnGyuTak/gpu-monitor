@@ -2,10 +2,11 @@
 
 GPU Monitor uses the installed macOS design system: AppKit owns the window material, SwiftUI supplies native controls and content surfaces, and system fonts and SF Symbols supply the typography and icons. Menu bar geometry and monitoring behavior are unchanged.
 
-## Observations and changes — 0.9.5
+## Observations and changes — 0.9.6
 
 | Observed problem | Change |
 | --- | --- |
+| Add Server still had a separate sheet presentation material, thin opaque text fields and a default SSH menu | Give its native sheet the same AppKit Glass root and neutral backing as the dashboard, denser Glass input wells, a system-colored editing focus ring and a native Glass menu button. Preserve sheet modality, input state, cancellation and content-driven sizing |
 | Job filters left every server card visible, making their effect and scope unclear | Replace them with All / Running / Querying server filters, a visible definition, matching/total counts and actionable empty states |
 | A custom accent focus outline also appeared after a mouse selection, dominating the Glass surface | Remove the drawn accent outline and selected-surface tint. Use neutral interactive regular Glass for selection and native focus effects only during keyboard navigation |
 | All servers opened their GPU and tmux details at launch, including servers outside the current menu target | Initially expand only the menu target. Keep manual disclosure changes across polling; expand the new target and collapse the old target when selection changes |
@@ -21,14 +22,14 @@ GPU Monitor uses the installed macOS design system: AppKit owns the window mater
 
 `GlassHostingController` owns the material at the actual AppKit window boundary. On macOS 26+ it embeds the SwiftUI hosting view in `NSGlassEffectView.contentView` with the system regular Glass style. The independent window uses a transparent titlebar and background while retaining real window buttons, safe areas, resizing and frame restoration. The menu-bar panel uses the same hosting controller, clear window background and native window shadow. It replaces the extra NSPopover presentation surface; the accepted dashboard material values remain unchanged.
 
-The SwiftUI root knows when the native window already supplies Glass, so it does not place another full-window material over it. Server and log sheets use the system ultra-thin presentation material (macOS 13.3+) under their Glass content and controls, keeping native sheet sizing and dismissal. Older systems use a behind-window `NSVisualEffectView` with the popover material.
+The SwiftUI root knows when the native window already supplies Glass, so it does not place another full-window material over it. Add Server uses `MonitorSheet` with a native attached sheet and the same `GlassHostingController` at its window root. The hosting controller follows the form’s preferred size as Docker fields and validation messages appear. Updating the parent during polling reuses the existing sheet and input state. Log sheets retain their system ultra-thin presentation material (macOS 13.3+) under their Glass content and controls. Older systems use a behind-window `NSVisualEffectView` with the popover material.
 
 | Layer | Used for | Treatment |
 | --- | --- | --- |
-| Window | Dashboard and settings backdrop | Native regular Glass plus a 55% semantic neutral backing; softens the actual background across the entire window |
+| Window | Dashboard, settings and Add Server backdrop | Native regular Glass plus a 55% semantic neutral backing; softens the actual background across the entire window |
 | Controls | Actions, pickers, menus, checkboxes and fields | Native styles and system focus, selection and disabled behavior |
 | Panels | Servers, settings, input form, empty state | Native regular Glass with a 38% semantic neutral backing |
-| Reading wells | GPU table, tmux sessions, pinned job and logs | Native regular Glass with a denser 58% semantic neutral backing |
+| Reading wells | GPU table, tmux sessions, pinned job, form fields and logs | Native regular Glass with a denser 58% semantic neutral backing |
 
 Backing values describe a layer over the native material, not measured optical transparency. Text itself is never faded. A one-point inset leaves the native Glass edge visible without drawing a simulated reflection. Selected surfaces tint the native material with the chosen accent; the **메뉴바** checkmark and **고정** checkbox remain the explicit selection indicators.
 
@@ -45,6 +46,7 @@ The running list ages every five seconds even if new observations stop arriving.
 ## Controls, color and information
 
 - Color choices are 24-point swatches with a 32-point selection ring and a 36-point button area. The monochrome choice uses a half-filled circle. Names remain available to VoiceOver and in tooltips.
+- Add Server uses native editable text fields on denser Glass wells. Editing focus uses the system keyboard-focus color; selection controls retain their neutral Glass treatment. The SSH alias menu uses the button menu style so it receives the same native Glass button style as other actions.
 - All actions use native Glass button styles where supported. Nonprimary buttons stay neutral so accent-colored symbols remain legible.
 - Segmented choices share a native Glass capsule track and neutral interactive regular Glass selection, with no custom accent outline. A checkmark distinguishes selection without color alone. Keyboard navigation uses the system focus effect; mouse selection does not retain a keyboard focus outline. Native buttons handle activation, left/right arrows change the focused option, and the native Picker accessibility representation preserves single-choice semantics. Older systems and Reduce Transparency use the standard segmented Picker. Increased Contrast retains a thin semantic boundary.
 - Checkboxes, menus, fields and linear progress views retain system behavior. Progress values are clamped, and an idle 0% bar has no colored fill.
@@ -64,7 +66,7 @@ Reduce Transparency supplies opaque semantic surfaces and standard buttons; the 
 - Inspect the live native window over a separate four-color window with large background text. Check both actual backdrop transmission and legibility of the foreground content.
 - Inspect settings swatches, accent propagation, server selection, add-server focus, log wrapping and sheet dismissal in the live native preview.
 - Render synthetic light/dark dashboard, settings, add-server, logs, empty/error states, 4/8 GPUs, long names, 100% readings and minimum/default/wide windows.
-- Run the 69 Python/Swift checks, including server filter membership, GPU evidence, stale readings, SSH failure, paused polling and menu-bar panel placement, and the native release build. CI tests and builds on macOS 14 and 26.
+- Run the 72 Python/Swift checks, including native sheet retention, content sizing, cancellation/reopening, server filter membership, GPU evidence, stale readings, SSH failure, paused polling and menu-bar panel placement, and the native release build. CI tests and builds on macOS 14 and 26.
 
 Accessibility branches are reviewed without changing the user’s global settings. Offscreen README images use synthetic data and compatibility materials; they do not reproduce actual behind-window optics. Native Glass is checked separately in a running window. This does not imply manual testing on every supported macOS version.
 

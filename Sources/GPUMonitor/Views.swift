@@ -26,7 +26,11 @@ struct DashboardView: View {
         }
         .frame(minWidth: MonitorAppearance.minimumWindowSize.width, minHeight: MonitorAppearance.minimumWindowSize.height)
         .background { DashboardBackdrop() }.font(.body)
-        .sheet(isPresented: $adding) { AddServerView(monitor: monitor).monitorTheme(monitor.preferences.menuIconColor) }
+        .background {
+            MonitorSheet(isPresented: $adding, title: "SSH 서버 추가") { close in
+                AddServerView(monitor: monitor, close: close).monitorTheme(monitor.preferences.menuIconColor)
+            }.frame(width: 0, height: 0)
+        }
         // A GPU becoming idle can remove its server from the filter while its log stays open.
         .sheet(item: $logTarget) { target in
             LogView(monitor: monitor, server: target.server, initialPane: target.pane)
