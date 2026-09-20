@@ -32,22 +32,28 @@ import Foundation
         NSAppearance(named: .aqua)!.performAsCurrentDrawingAppearance {
             for count in 1...8 {
                 for activeIndex in 0..<count {
-                    let slices = (0..<count).map { GPUPieSlice(index: $0 * 2, active: $0 == activeIndex) }
-                    let state = GPUPieState(server: nil, slices: slices, status: nil)
-                    let icon = GPUPieIcon.image(for: state, color: .orange)
-                    require(icon.size == NSSize(width: 20, height: 20), "Keep 1–8 GPUs in one menu bar circle")
-                    let rendered = bitmap(icon)
-                    for index in 0..<count {
-                        let angle = (90 - (Double(index) + 0.5) * 360 / Double(count)) * .pi / 180
-                        let x = Int(10 + 6 * cos(angle))
-                        let y = Int(10 - 6 * sin(angle))
-                        let filled = rendered.colorAt(x: x, y: y)!.alphaComponent > 0.8
-                        require(filled == (index == activeIndex), "Highlight only GPU \(activeIndex) at its clockwise position among \(count) GPUs")
-                    }
-                    require(state.toolTip.contains("GPU \((count - 1) * 2):"), "Retain actual GPU indices in the description")
+                    checkCirclePositions(count: count, activeIndex: activeIndex)
                 }
             }
         }
+    }
+
+    static func checkCirclePositions(count: Int, activeIndex: Int) {
+        let slices: [GPUPieSlice] = (0..<count).map { GPUPieSlice(index: $0 * 2, active: $0 == activeIndex) }
+        let state = GPUPieState(server: nil, slices: slices, status: nil)
+        let icon = GPUPieIcon.image(for: state, color: .orange)
+        require(icon.size == NSSize(width: 20, height: 20), "Keep 1–8 GPUs in one menu bar circle")
+        let rendered = bitmap(icon)
+        let sweep: Double = 360.0 / Double(count)
+        for index in 0..<count {
+            let degrees: Double = 90.0 - (Double(index) + 0.5) * sweep
+            let angle: Double = degrees * Double.pi / 180.0
+            let x = Int(10.0 + 6.0 * cos(angle))
+            let y = Int(10.0 - 6.0 * sin(angle))
+            let filled = rendered.colorAt(x: x, y: y)!.alphaComponent > 0.8
+            require(filled == (index == activeIndex), "Highlight only GPU \(activeIndex) at its clockwise position among \(count) GPUs")
+        }
+        require(state.toolTip.contains("GPU \((count - 1) * 2):"), "Retain actual GPU indices in the description")
     }
 
     static func activityAndLabels() {
