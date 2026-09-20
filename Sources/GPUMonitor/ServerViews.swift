@@ -83,7 +83,7 @@ struct ServerCard: View {
             } label: {
                 Image(systemName: "ellipsis").foregroundStyle(accent).frame(width: 30, height: 30)
                     .contentShape(RoundedRectangle(cornerRadius: 9))
-            }.menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().monitorSurface(.chrome, radius: 8)
+            }.menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                 .help(server.alias + " 서버 관리").accessibilityLabel(server.alias + " 서버 관리")
                 .disabled(monitor.deletingSessions[server.id] != nil)
         }

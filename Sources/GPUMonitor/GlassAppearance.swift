@@ -18,8 +18,6 @@ extension EnvironmentValues {
 }
 
 let muted = Color.secondary
-let inset = Color(nsColor: MonitorAppearance.inset)
-let outlineColor = Color(nsColor: MonitorAppearance.border)
 
 extension View {
     func monitorTheme(_ color: MenuIconColor) -> some View {
@@ -27,8 +25,20 @@ extension View {
         return environment(\.monitorAccent, accent).environment(\.monitorIconColor, color).tint(accent)
     }
     func monitorAction(primary: Bool = false) -> some View { modifier(MonitorActionModifier(primary: primary)) }
+    func monitorSheetPresentation() -> some View { modifier(MonitorSheetPresentation()) }
     func monitorSurface(_ layer: MonitorGlassLayer = .panel, radius: CGFloat = 14, selected: Bool = false) -> some View {
         background { MonitorGlassSurface(layer: layer, radius: radius, selected: selected) }
+    }
+}
+
+private struct MonitorSheetPresentation: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if #available(macOS 13.3, *) {
+            if reduceTransparency { content.presentationBackground(Color(nsColor: .windowBackgroundColor)) }
+            else { content.presentationBackground(.ultraThinMaterial) }
+        } else { content }
     }
 }
 
@@ -68,74 +78,40 @@ struct MonitorGlassGroup<Content: View>: View {
     }
 }
 
-/// Density belongs to the background, never to the text or its containing view.
+/// The window owns the backdrop; content layers never stack another full-window material over it.
 enum MonitorGlassLayer {
-    case canvas, chrome, panel, well
-
-    var backingOpacity: Double {
-        switch self {
-        case .canvas: return 0.12
-        case .chrome: return 0.22
-        case .panel: return 0.34
-        case .well: return 0.58
-        }
-    }
+    case panel, well
 }
 
 struct MonitorGlassSurface: View {
     @Environment(\.monitorAccent) private var accent
-    @Environment(\.colorScheme) private var scheme
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     let layer: MonitorGlassLayer
     var radius: CGFloat = 14
     var selected = false
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: radius, style: .continuous) }
-    private var backing: Color {
-        Color(nsColor: layer == .well ? MonitorAppearance.inset : MonitorAppearance.background)
-    }
+    private var backing: Color { Color(nsColor: layer == .well ? .textBackgroundColor : .controlBackgroundColor) }
 
     var body: some View {
-        ZStack {
-            material
-            // A denser neutral backing protects numerals and log text from the scene behind the window.
-            shape.fill(backing.opacity(reduceTransparency ? 1 : layer.backingOpacity))
-            if selected {
-                shape.fill(LinearGradient(colors: [accent.opacity(0.10), accent.opacity(0.025), accent.opacity(0.07)],
-                                          startPoint: .topLeading, endPoint: .bottomTrailing))
-                if !reduceTransparency && (layer == .panel || layer == .well) {
-                    // Overlapping translucent bands fade inward, like color held in the glass edge.
-                    // No blur filter is needed, so native and compatibility renders retain the same falloff.
-                    ForEach(1...8, id: \.self) { band in
-                        shape.strokeBorder(LinearGradient(colors: [
-                            accent.opacity(scheme == .dark ? 0.026 : 0.018),
-                            Color.white.opacity(0.01), accent.opacity(0.015)
-                        ], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: CGFloat(band * 2))
-                    }
-                }
+        material
+            .overlay {
+                if contrast == .increased { shape.strokeBorder(Color.primary.opacity(0.55), lineWidth: 1) }
             }
-            if layer != .canvas {
-                shape.strokeBorder(LinearGradient(colors: [
-                    Color.white.opacity(scheme == .dark ? 0.25 : 0.78),
-                    selected ? accent.opacity(0.20) : Color.white.opacity(0.06),
-                    Color.white.opacity(scheme == .dark ? 0.10 : 0.40)
-                ], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
-            }
-            if contrast == .increased {
-                shape.strokeBorder(Color.primary.opacity(0.55), lineWidth: 1)
-            }
-        }
-        .shadow(color: .black.opacity(layer == .panel && !reduceTransparency ? (scheme == .dark ? 0.18 : 0.07) : 0), radius: 5, y: 2)
-        .allowsHitTesting(false).accessibilityHidden(true)
+            .allowsHitTesting(false).accessibilityHidden(true)
     }
 
     @ViewBuilder private var material: some View {
-        if reduceTransparency { shape.fill(backing) }
-        else {
+        if reduceTransparency {
+            shape.fill(backing)
+                .overlay(shape.fill(selected ? accent.opacity(0.12) : .clear))
+        } else {
             #if compiler(>=6.2)
             if #available(macOS 26.0, *) {
                 shape.fill(Color.clear)
-                    .glassEffect(.regular.tint(selected ? accent.opacity(0.14) : nil), in: shape)
+                    .glassEffect(Glass.regular
+                        .tint(selected ? accent.opacity(0.12) : nil), in: shape)
+                    .overlay(shape.inset(by: 1).fill(backing.opacity(layer == .well ? 0.58 : 0.38)))
             } else { compatibilityMaterial }
             #else
             compatibilityMaterial
@@ -144,28 +120,31 @@ struct MonitorGlassSurface: View {
     }
 
     private var compatibilityMaterial: some View {
-        shape.fill(layer == .well ? .thickMaterial : .regularMaterial)
+        shape.fill(layer == .well ? .regularMaterial : .ultraThinMaterial)
+            .overlay(shape.fill(selected ? accent.opacity(0.08) : .clear))
     }
 }
 
-/// A real behind-window material lets the desktop participate in the glass canvas.
+/// Explicit behind-window blending is needed here; SwiftUI glass samples within its own window.
 private struct WindowGlassBackdrop: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = .underWindowBackground
-        view.blendingMode = .behindWindow
-        view.state = .followsWindowActiveState
-        return view
+        let material = NSVisualEffectView()
+        material.material = .popover
+        material.blendingMode = .behindWindow
+        material.state = .followsWindowActiveState
+        return material
     }
     func updateNSView(_ view: NSVisualEffectView, context: Context) { }
 }
 
 struct DashboardBackdrop: View {
+    @Environment(\.windowGlassProvided) private var provided
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     var body: some View {
-        ZStack {
-            if !reduceTransparency { WindowGlassBackdrop() }
-            MonitorGlassSurface(layer: .canvas, radius: 0)
+        Group {
+            if reduceTransparency { Color(nsColor: .windowBackgroundColor) }
+            else if provided { Color.clear }
+            else { WindowGlassBackdrop() }
         }.ignoresSafeArea().allowsHitTesting(false).accessibilityHidden(true)
     }
 }
@@ -208,7 +187,6 @@ struct MonitorSegmentedPicker<Value: Hashable>: View {
         Picker(label, selection: $selection) {
             ForEach(options, id: \.0) { value, title in Text(title).tag(value) }
         }.pickerStyle(.segmented).labelsHidden().accessibilityLabel(label)
-            .monitorSurface(.chrome, radius: 7)
     }
 }
 
@@ -248,14 +226,7 @@ struct FractionBar: View {
     @Environment(\.monitorAccent) private var accent
     let value: Double
     var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                Capsule().fill(.thinMaterial)
-                    .overlay(Capsule().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5))
-                Capsule().fill(accent)
-                    .overlay(Capsule().fill(LinearGradient(colors: [.white.opacity(0.28), .clear], startPoint: .top, endPoint: .bottom)))
-                    .frame(width: geometry.size.width * (value.isFinite ? min(1, max(0, value)) : 0))
-            }
-        }.frame(height: 5)
+        ProgressView(value: value.isFinite ? min(1, max(0, value)) : 0)
+            .progressViewStyle(.linear).controlSize(.small).tint(value > 0 ? accent : .clear).frame(height: 5)
     }
 }

@@ -45,7 +45,7 @@ struct DashboardView: View {
                     }.keyboardShortcut(",", modifiers: .command)
                 }
             }
-        }.padding(.horizontal, 16).padding(.vertical, 10).monitorSurface(.chrome, radius: 0)
+        }.padding(.horizontal, 16).padding(.vertical, 10)
     }
 
     private var dashboard: some View {
@@ -55,7 +55,7 @@ struct DashboardView: View {
                     MonitorSegmentedPicker(label: "작업 필터", options: JobFilter.allCases.map { ($0, $0.label) }, selection: $filter)
                     Button { adding = true } label: { AccentLabel(title: "서버 추가", symbol: "plus") }
                         .monitorAction().fixedSize().keyboardShortcut("n", modifiers: .command)
-                }.padding(.horizontal, 16).padding(.vertical, 10).monitorSurface(.chrome, radius: 0)
+                }.padding(.horizontal, 16).padding(.vertical, 10)
             }
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 10) {
@@ -89,6 +89,6 @@ struct DashboardView: View {
             Spacer()
             if busy { ProgressView().controlSize(.mini); Text("갱신 중") }
             else { Text("\(monitor.preferences.servers.count)개 서버") }
-        }.font(.caption).foregroundStyle(muted).padding(.horizontal, 16).padding(.vertical, 8).monitorSurface(.chrome, radius: 0)
+        }.font(.caption).foregroundStyle(muted).padding(.horizontal, 16).padding(.vertical, 8)
     }
 }

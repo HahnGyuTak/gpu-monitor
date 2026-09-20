@@ -24,9 +24,8 @@ struct MenuIconSettingsView: View {
             }
             HStack(spacing: 12) {
                 Text("강조색").frame(width: 88, alignment: .leading)
-                HStack(spacing: 6) {
-                    ForEach(MenuIconColor.allCases, id: \.self) { color in colorButton(color) }
-                }
+                colorPicker
+                Spacer(minLength: 0)
             }
             HStack(spacing: 12) {
                 Text("미리보기").foregroundStyle(muted).frame(width: 88, alignment: .leading)
@@ -45,21 +44,29 @@ struct MenuIconSettingsView: View {
         }.font(.callout)
     }
 
-    private func colorButton(_ color: MenuIconColor) -> some View {
-        let selected = monitor.preferences.menuIconColor == color
-        return Button {
-            monitor.preferences.menuIconColor = color
-            monitor.save()
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: selected ? "checkmark.circle.fill" : "circle.fill")
-                    .foregroundStyle(Color(nsColor: MonitorAppearance.iconColor(color)))
-                Text(color.label).foregroundStyle(Color.primary)
-            }.font(.callout).padding(.vertical, 5).frame(maxWidth: .infinity)
-        }.buttonStyle(.borderless).monitorSurface(.chrome, radius: 8, selected: selected)
-            .accessibilityLabel("강조 색상 " + color.label).accessibilityValue(selected ? "선택됨" : "선택 안 됨")
-            .accessibilityAddTraits(selected ? .isSelected : [])
+    private var colorPicker: some View {
+        HStack(spacing: 6) {
+            ForEach(MenuIconColor.allCases, id: \.self) { color in
+                let selected = monitor.preferences.menuIconColor == color
+                let tint = Color(nsColor: MonitorAppearance.iconColor(color))
+                Button {
+                    monitor.preferences.menuIconColor = color; monitor.save()
+                } label: {
+                    ZStack {
+                        if color == .monochrome {
+                            Image(systemName: "circle.lefthalf.filled").font(.system(size: 24)).foregroundStyle(tint)
+                        } else {
+                            Circle().fill(tint).frame(width: 24, height: 24)
+                        }
+                        Circle().strokeBorder(selected ? tint : .clear, lineWidth: 2).frame(width: 32, height: 32)
+                    }.frame(width: 36, height: 36).contentShape(Circle())
+                }.buttonStyle(.borderless).help(color.label).accessibilityLabel("강조 색상 " + color.label)
+                    .accessibilityValue(selected ? "선택됨" : "선택 안 됨")
+                    .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }.accessibilityElement(children: .contain).accessibilityLabel("강조색")
     }
+
 }
 
 struct SettingsView: View {
@@ -84,7 +91,7 @@ struct SettingsView: View {
                 Text("GPU Monitor \(version)").font(.caption).foregroundStyle(muted)
                 Spacer()
                 Button("앱 종료") { NSApplication.shared.terminate(nil) }.monitorAction().controlSize(.small)
-            }.padding(.horizontal, 16).padding(.vertical, 8).monitorSurface(.chrome, radius: 0)
+            }.padding(.horizontal, 16).padding(.vertical, 8)
         }
     }
 
@@ -94,7 +101,7 @@ struct SettingsView: View {
                 Text("조회 간격").frame(width: 88, alignment: .leading)
                 Picker("조회 간격", selection: Binding(get: { monitor.preferences.interval }, set: { monitor.preferences.interval = $0; monitor.save() })) {
                     Text("5초").tag(5.0); Text("10초").tag(10.0); Text("30초").tag(30.0); Text("60초").tag(60.0)
-                }.pickerStyle(.menu).labelsHidden().frame(width: 90).monitorSurface(.chrome, radius: 6)
+                }.pickerStyle(.menu).labelsHidden().frame(width: 90)
                 Spacer()
             }
             Toggle("간결한 메뉴바", isOn: Binding(get: { monitor.preferences.compact }, set: { monitor.preferences.compact = $0; monitor.save() }))

@@ -48,7 +48,7 @@ struct AddServerView: View {
                             ForEach(monitor.aliases, id: \.self) { name in Button(name) { alias = name; error = nil } }
                         } label: {
                             Text("SSH 설정")
-                        }.menuStyle(.borderedButton).fixedSize().monitorSurface(.chrome, radius: 6)
+                        }.menuStyle(.borderedButton).fixedSize()
                             .foregroundStyle(Color(nsColor: MonitorAppearance.iconColor(monitor.preferences.menuIconColor)))
                             .disabled(monitor.aliases.isEmpty).help("SSH 설정에서 선택").accessibilityLabel("SSH 설정에서 별칭 선택")
                     }
@@ -76,6 +76,7 @@ struct AddServerView: View {
                 }
             }
         }.padding(20).frame(width: 470).background { DashboardBackdrop() }.font(.body)
+            .monitorSheetPresentation()
             .onAppear { focused = .alias }
             .onChange(of: alias) { _ in error = nil }
             .onChange(of: container) { _ in error = nil }
@@ -151,6 +152,7 @@ struct LogView: View {
             Label("읽기 전용 · 원격 터미널에 입력을 보내지 않습니다", systemImage: "lock")
                 .font(.caption).foregroundStyle(muted)
         }.padding(20).frame(width: 500, height: 570).background { DashboardBackdrop() }
+            .monitorSheetPresentation()
             .task(id: copied) {
                 guard copied else { return }
                 try? await Task.sleep(nanoseconds: 1_800_000_000)

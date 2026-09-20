@@ -20,7 +20,7 @@ import SwiftUI
         popover = NSPopover()
         popover.behavior = .transient
         popover.contentSize = MonitorAppearance.dashboardSize
-        popover.contentViewController = NSHostingController(rootView:
+        popover.contentViewController = GlassHostingController(rootView:
             DashboardView(monitor: monitor, openWindow: { [weak self] in self?.showDashboard() })
                 .frame(width: MonitorAppearance.dashboardSize.width, height: MonitorAppearance.dashboardSize.height))
         monitor.onChange = { [weak self] in self?.updateStatusItem() }
@@ -88,7 +88,7 @@ import SwiftUI
             if window.isMiniaturized { window.deminiaturize(nil) }
             window.makeKeyAndOrderFront(nil)
         } else {
-            let controller = NSHostingController(rootView: DashboardView(monitor: monitor))
+            let controller = GlassHostingController(rootView: DashboardView(monitor: monitor))
             let dashboard = NSWindow(contentViewController: controller)
             dashboard.title = "GPU Monitor"
             dashboard.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
