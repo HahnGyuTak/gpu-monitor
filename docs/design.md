@@ -1,6 +1,6 @@
 # Liquid Glass dashboard
 
-The popover uses a translucent canvas, readable material cards, and native Liquid Glass for the functional controls. The menu bar renderer, segment/bar layout, activity logic, and saved icon options are unchanged.
+The popover uses a translucent canvas, readable material cards, and native Liquid Glass for the functional controls. Menu bar circles represent 1–8 GPUs in a single circle, in clockwise GPU order from 12 o’clock. The barcode layout, activity logic and saved icon options are preserved. Counts above eight have no special handling.
 
 ## References and interpretation
 
@@ -19,7 +19,7 @@ The numeric hierarchy remains 24 pt utilization readings, a 19 pt app title, 12�
 
 `monitorTheme` distributes the existing `menuIconColor` through the SwiftUI environment. GPU utilization and training progress bars, header/server/GPU icons and action symbols use that color. Blue, the original green, orange, purple and appearance-aware monochrome are available. Inactive GPU segments remain neutral; color is also accompanied by values, tooltips or selection marks.
 
-The selected color changes immediately in the dashboard and its sheets. No separate theme preference is stored. `GPUPieIcon.swift` and the menu bar update function have not been modified for this redesign.
+The selected color changes immediately in the dashboard and its sheets. No separate theme preference is stored. The menu bar update function uses the same saved color and shape selection.
 
 ## Compatibility and accessibility
 
@@ -31,4 +31,4 @@ The selected color changes immediately in the dashboard and its sheets. No separ
 
 The README images show synthetic data rendered through the compatibility material path. Live native glass is separately checked in the running app; its optical effect depends on the system and background and is not captured by the offscreen view bitmap renderer.
 
-Regenerate the bundled app icon with `bash scripts/make-icon.sh`. That app icon and the existing menu bar icon assets are unchanged in this update.
+Regenerate the bundled app icon with `bash scripts/make-icon.sh`. The bundled app icon remains unchanged. Menu bar status icons are rendered from the current GPU state.

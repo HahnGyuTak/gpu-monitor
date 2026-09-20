@@ -28,19 +28,25 @@ import Foundation
         }
     }
 
-    static func balancedCircleMapping() {
-        for (count, sizes) in [(0, []), (1, [1]), (4, [4]), (5, [3, 2]), (6, [3, 3]), (7, [4, 3]), (8, [4, 4]), (9, [3, 3, 3]), (16, [4, 4, 4, 4])] {
-            let slices = (0..<count).map { GPUPieSlice(index: $0 * 2, active: $0 % 2 == 0) }
-            let groups = GPUPieIcon.groups(slices)
-            require(groups.map(\.count) == sizes, "Incorrect grouping for \(count) GPUs")
-            require(groups.flatMap { $0 } == slices, "Grouping must preserve GPU numbers and active states")
-        }
-        for count in 1...128 {
-            let slices = (0..<count).map { GPUPieSlice(index: $0, active: false) }
-            let groups = GPUPieIcon.groups(slices)
-            require(groups.allSatisfy { (1...4).contains($0.count) }, "Never exceed four segments per circle")
-            require(groups.flatMap { $0 } == slices, "Do not drop or duplicate GPUs")
-            require(groups.map(\.count).max()! - groups.map(\.count).min()! <= 1, "Balance the circles")
+    static func singleCircleMapping() {
+        NSAppearance(named: .aqua)!.performAsCurrentDrawingAppearance {
+            for count in 1...8 {
+                for activeIndex in 0..<count {
+                    let slices = (0..<count).map { GPUPieSlice(index: $0 * 2, active: $0 == activeIndex) }
+                    let state = GPUPieState(server: nil, slices: slices, status: nil)
+                    let icon = GPUPieIcon.image(for: state, color: .orange)
+                    require(icon.size == NSSize(width: 20, height: 20), "Keep 1–8 GPUs in one menu bar circle")
+                    let rendered = bitmap(icon)
+                    for index in 0..<count {
+                        let angle = (90 - (Double(index) + 0.5) * 360 / Double(count)) * .pi / 180
+                        let x = Int(10 + 6 * cos(angle))
+                        let y = Int(10 - 6 * sin(angle))
+                        let filled = rendered.colorAt(x: x, y: y)!.alphaComponent > 0.8
+                        require(filled == (index == activeIndex), "Highlight only GPU \(activeIndex) at its clockwise position among \(count) GPUs")
+                    }
+                    require(state.toolTip.contains("GPU \((count - 1) * 2):"), "Retain actual GPU indices in the description")
+                }
+            }
         }
     }
 
@@ -50,7 +56,7 @@ import Foundation
         }
         let state = GPUPieState.make(server: "example", gpus: gpus)
         require(state.slices.filter(\.active).map(\.index) == [2, 6], "Only active GPUs are highlighted, in GPU order")
-        require(state.toolTip.contains("원 2: GPU 4 → GPU 5 → GPU 6 → GPU 7"), "Describe multi-circle mapping")
+        require(state.toolTip.contains("12시부터 시계 방향 · GPU 번호순") && !state.toolTip.contains("원 2"), "Describe one circle in clockwise GPU order")
         require(state.toolTip(for: .bars).contains("왼쪽부터 GPU 번호순"), "Describe barcode direction")
         require(!state.toolTip(for: .bars).contains("시계 방향"), "Do not describe bars as circular")
         let paused = GPUPieState.make(server: "example", gpus: gpus, status: "일시 정지")
@@ -70,7 +76,7 @@ import Foundation
         for dark in [false, true] {
             NSAppearance(named: dark ? .darkAqua : .aqua)!.performAsCurrentDrawingAppearance {
                 for style in MenuIconStyle.allCases {
-                    for count in [0, 1, 4, 6, 8] {
+                    for count in 0...8 {
                         let state = GPUPieState(server: nil, slices: (0..<count).map { GPUPieSlice(index: $0, active: $0 == count - 1) }, status: nil)
                         let blue = bitmap(GPUPieIcon.image(for: state, style: style, color: .blue))
                         let orange = bitmap(GPUPieIcon.image(for: state, style: style, color: .orange))
@@ -87,7 +93,6 @@ import Foundation
                         require(count == 0 ? differences == 0 : differences > 0, "Apply color only when a GPU is active")
                         let runs = occupiedColumns.enumerated().filter { $0.element && ($0.offset == 0 || !occupiedColumns[$0.offset - 1]) }.count
                         if style == .bars && count > 0 { require(runs == count, "Render one separate bar per GPU") }
-                        if style == .circles && count == 8 { require(runs == 4, "Two circles must retain their center and inter-circle gaps") }
                     }
                 }
             }
@@ -97,7 +102,7 @@ import Foundation
     static func main() throws {
         try legacyPreferences(); print("PASS legacy and unknown icon preferences preserve settings")
         try preferenceRoundTrips(); print("PASS style and color persistence")
-        balancedCircleMapping(); print("PASS balanced GPU groups and exact GPU mapping")
+        singleCircleMapping(); print("PASS one-circle rendering and clockwise GPU mapping for 1–8 GPUs")
         activityAndLabels(); print("PASS activity, stale states and accessible ordering")
         renderedLayouts(); print("PASS light/dark icon rendering and barcode count")
         print("5 Menu icon checks passed")

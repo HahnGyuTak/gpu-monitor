@@ -25,8 +25,8 @@ cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 <key>CFBundleName</key><string>GPU Monitor</string>
 <key>CFBundleDisplayName</key><string>GPU Monitor</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.5.0</string>
-<key>CFBundleVersion</key><string>10</string>
+<key>CFBundleShortVersionString</key><string>0.5.1</string>
+<key>CFBundleVersion</key><string>11</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 <key>LSUIElement</key><true/>
 <key>NSHighResolutionCapable</key><true/>

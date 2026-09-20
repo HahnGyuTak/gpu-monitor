@@ -411,7 +411,7 @@ struct MenuIconSettingsView: View {
                 }
             }.padding(12).background(inset, in: RoundedRectangle(cornerRadius: 8))
             Text(monitor.preferences.menuIconStyle == .circles
-                 ? "원당 최대 4분할 · 6개는 3+3, 8개는 4+4. 왼쪽 원부터, 각 원은 12시부터 시계 방향입니다."
+                 ? "GPU 1~8개를 원 하나에 표시합니다. GPU 번호순으로 12시부터 시계 방향으로 나눕니다."
                  : "GPU 번호순으로 왼쪽부터 막대 하나씩 표시합니다. 막대 높이는 사용률에 따라 변하지 않습니다.")
                 .font(.system(size: 11)).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
             Text("활성 GPU만 선택한 색으로 표시합니다. 위 미리보기는 예시이며, 색상은 메뉴바와 창 내부의 GPU 막대·아이콘에 함께 적용됩니다.")
@@ -447,7 +447,7 @@ private struct SettingsView: View {
             }
             Divider()
             HStack {
-                Text("GPU Monitor 0.5.0").font(.system(size: 11)).foregroundStyle(muted)
+                Text("GPU Monitor 0.5.1").font(.system(size: 11)).foregroundStyle(muted)
                 Spacer()
                 Button("앱 종료") { NSApplication.shared.terminate(nil) }
             }.padding(.horizontal, 24).padding(.vertical, 14)
