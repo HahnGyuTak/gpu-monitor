@@ -18,7 +18,7 @@ import SwiftUI
         statusItem.button?.imageScaling = .scaleNone
         popover = NSPopover()
         popover.behavior = .transient
-        popover.contentSize = NSSize(width: 480, height: 660)
+        popover.contentSize = MonitorAppearance.dashboardSize
         popover.contentViewController = NSHostingController(rootView: DashboardView(monitor: monitor))
         monitor.onChange = { [weak self] in self?.updateStatusItem() }
         updateStatusItem()
@@ -51,7 +51,7 @@ import SwiftUI
         window = NSWindow(contentViewController: view)
         window?.title = "GPU Monitor"
         window?.styleMask = [.titled, .closable, .miniaturizable]
-        window?.setContentSize(NSSize(width: 480, height: 660))
+        window?.setContentSize(MonitorAppearance.dashboardSize)
         window?.center()
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)

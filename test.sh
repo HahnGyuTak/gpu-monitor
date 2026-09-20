@@ -16,6 +16,7 @@ swiftc -parse-as-library -module-cache-path "$project_dir/.build/module-cache" \
     "$project_dir/Sources/GPUMonitor/JobTracker.swift" \
     "$project_dir/Sources/GPUMonitor/SSHProvider.swift" \
     "$project_dir/Sources/GPUMonitor/Monitor.swift" \
+    "$project_dir/Sources/GPUMonitor/Appearance.swift" \
     "$project_dir/Sources/GPUMonitor/GPUPieIcon.swift" \
     "$project_dir/Tests/Swift/MonitorTests.swift" \
     -o "$project_dir/.build/checks/gpu-monitor-integration-checks"

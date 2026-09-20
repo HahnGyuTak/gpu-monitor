@@ -1,26 +1,36 @@
 import AppKit
 
+// A four-segment GPU mark, drawn as vectors so every icon size stays crisp.
 let output = CommandLine.arguments[1]
 let image = NSImage(size: NSSize(width: 1024, height: 1024))
 image.lockFocus()
-NSColor(calibratedRed: 0.07, green: 0.10, blue: 0.13, alpha: 1).setFill()
-NSBezierPath(roundedRect: NSRect(x: 40, y: 40, width: 944, height: 944), xRadius: 216, yRadius: 216).fill()
-let teal = NSColor(calibratedRed: 0.30, green: 0.87, blue: 0.74, alpha: 1)
-teal.withAlphaComponent(0.12).setFill()
-NSBezierPath(roundedRect: NSRect(x: 246, y: 246, width: 532, height: 532), xRadius: 84, yRadius: 84).fill()
-teal.setStroke()
-let chip = NSBezierPath(roundedRect: NSRect(x: 266, y: 266, width: 492, height: 492), xRadius: 62, yRadius: 62)
-chip.lineWidth = 30
-chip.stroke()
-for offset in stride(from: 354, through: 672, by: 106) {
-    for pair in [(NSPoint(x: offset, y: 210), NSPoint(x: offset, y: 266)), (NSPoint(x: offset, y: 758), NSPoint(x: offset, y: 814)), (NSPoint(x: 210, y: offset), NSPoint(x: 266, y: offset)), (NSPoint(x: 758, y: offset), NSPoint(x: 814, y: offset))] {
-        let pin = NSBezierPath(); pin.move(to: pair.0); pin.line(to: pair.1); pin.lineWidth = 26; pin.lineCapStyle = .round; pin.stroke()
-    }
+let tile = NSBezierPath(roundedRect: NSRect(x: 40, y: 40, width: 944, height: 944), xRadius: 212, yRadius: 212)
+NSGradient(starting: NSColor(srgbRed: 0.20, green: 0.22, blue: 0.26, alpha: 1),
+           ending: NSColor(srgbRed: 0.09, green: 0.10, blue: 0.13, alpha: 1))!.draw(in: tile, angle: -90)
+NSColor.white.withAlphaComponent(0.10).setStroke()
+tile.lineWidth = 2
+tile.stroke()
+let center = NSPoint(x: 512, y: 512)
+let colors = [NSColor(srgbRed: 0.40, green: 0.62, blue: 1, alpha: 1),
+              NSColor(white: 0.96, alpha: 1), NSColor(white: 0.72, alpha: 1), NSColor(white: 0.86, alpha: 1)]
+for index in 0..<4 {
+    let start = 90 - Double(index) * 90
+    let wedge = NSBezierPath()
+    wedge.move(to: center)
+    wedge.appendArc(withCenter: center, radius: 286, startAngle: start, endAngle: start - 90, clockwise: true)
+    wedge.close()
+    colors[index].setFill()
+    wedge.fill()
 }
-let trace = NSBezierPath()
-trace.move(to: NSPoint(x: 352, y: 474))
-for point in [NSPoint(x: 425, y: 474), NSPoint(x: 475, y: 615), NSPoint(x: 545, y: 399), NSPoint(x: 596, y: 535), NSPoint(x: 672, y: 535)] { trace.line(to: point) }
-trace.lineWidth = 32; trace.lineCapStyle = .round; trace.lineJoinStyle = .round; trace.stroke()
+// Match the menu bar's clockwise four-GPU map with clear separation.
+NSColor(srgbRed: 0.15, green: 0.17, blue: 0.20, alpha: 1).setStroke()
+for angle in [0.0, 90, 180, 270] {
+    let line = NSBezierPath()
+    line.move(to: center)
+    line.line(to: NSPoint(x: center.x + 288 * cos(angle * .pi / 180), y: center.y + 288 * sin(angle * .pi / 180)))
+    line.lineWidth = 22
+    line.stroke()
+}
 image.unlockFocus()
 let rep = NSBitmapImageRep(data: image.tiffRepresentation!)!
 try rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: output))

@@ -12,6 +12,13 @@ SwiftUI와 AppKit으로 만든 작은 메뉴바 앱입니다. 기존 SSH 설정�
 
 *표시 예시입니다. 진행률과 ETA는 선택한 pane의 로그에서 읽습니다.*
 
+<p align="center">
+  <img src="docs/images/dashboard-light.png" width="46%" alt="라이트 모드 — 예시 서버의 GPU와 학습 진행률" />
+  <img src="docs/images/dashboard-dark.png" width="46%" alt="다크 모드 — 예시 서버의 GPU와 학습 진행률" />
+</p>
+
+*미리보기는 예시 데이터입니다. [색상·글꼴과 디자인 기준](docs/design.md)*
+
 ## 주요 기능
 
 | 기능 | 설명 |
@@ -28,7 +35,7 @@ SwiftUI와 AppKit으로 만든 작은 메뉴바 앱입니다. 기존 SSH 설정�
 
 1. 위 **macOS 앱 다운로드** 링크에서 ZIP을 받습니다.
 2. 압축을 풀고 `GPU Monitor.app`을 **응용 프로그램** 폴더로 옮겨 실행합니다.
-3. 메뉴바 아이콘을 클릭하고 **+**에서 SSH 서버를 추가합니다.
+3. 메뉴바 아이콘을 클릭하고 **서버 추가**에서 SSH 서버를 추가합니다.
 
 **요구사항:** macOS 13 이상. 제공 앱은 **Apple Silicon(arm64)** 용입니다. Intel Mac은 소스에서 직접 빌드할 수 있지만 Intel 환경에서 검증하지 않았습니다.
 
@@ -59,7 +66,7 @@ ssh training-server
 
 ## 사용 방법
 
-- **서버 이름 왼쪽 원:** GPU 수만큼 나뉘며 활성 GPU 조각만 초록색입니다. 4개일 때 GPU 0부터 우상단 → 우하단 → 좌하단 → 좌상단 순서입니다. 카드가 접혀 있어도 보입니다.
+- **서버 이름 왼쪽 원:** GPU 수만큼 나뉘며 활성 GPU 조각만 파란색입니다. 4개일 때 GPU 0부터 우상단 → 우하단 → 좌하단 → 좌상단 순서입니다. 카드가 접혀 있어도 보입니다.
 - **서버의 메뉴바 버튼:** 해당 서버의 GPU 요약을 메뉴바에 표시합니다. 선택은 재실행 후에도 유지됩니다.
 - **pane의 핀:** 그 서버와 작업을 선택해 진행률·ETA를 표시합니다. 해제하면 같은 서버의 GPU 요약으로 돌아갑니다.
 - **pane의 벨:** 해당 pane의 새 오류·종료 감시를 켭니다. 설정에서 **macOS 알림**도 켜고 시스템 알림 권한을 허용하세요.
@@ -129,6 +136,7 @@ Ad-hoc 빌드는 macOS 알림 동작이 개발 서명 빌드와 다를 수 있�
 ```text
 Sources/GPUMonitor/
   App.swift                 메뉴바와 앱 수명 주기
+  Appearance.swift          라이트·다크 팔레트와 공통 화면 크기
   Views.swift               서버·GPU·tmux 화면
   Monitor.swift             폴링, 서버 선택, 알림
   Models.swift              설정과 관측 모델

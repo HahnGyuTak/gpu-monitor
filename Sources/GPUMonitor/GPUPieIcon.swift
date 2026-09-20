@@ -49,7 +49,7 @@ enum GPUPieIcon {
         let center = NSPoint(x: rect.midX, y: rect.midY)
         let radius = min(rect.width, rect.height) * 0.425
         let inactive = NSColor.labelColor.withAlphaComponent(0.23)
-        let active = NSColor(calibratedRed: 0.08, green: 0.72, blue: 0.49, alpha: 1)
+        let active = MonitorAppearance.accent
         guard !slices.isEmpty else {
             NSColor.labelColor.withAlphaComponent(0.55).setStroke()
             let ring = NSBezierPath(ovalIn: NSRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
