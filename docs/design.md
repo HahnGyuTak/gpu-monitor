@@ -1,46 +1,58 @@
-# GPU Monitor design
+# GPU Monitor — continuous Glass surfaces
 
-The dashboard is a compact monitoring list. Controls use native macOS behavior; server readings remain on neutral, opaque system surfaces. A server is one visual group, with GPU readings aligned in rows and tmux sessions below them. The menu bar renderer is independent of this layout.
+The same Glass material family now spans the window canvas, navigation, server panels, settings, input sheets and logs. Each layer has its own density so the window remains translucent while readings stay legible. Native controls retain their keyboard, selection and disabled behavior.
 
-## Information and controls
+## Surface hierarchy
 
-- The header contains navigation and global actions. A native segmented picker filters jobs; GPU readings remain server-wide.
-- Each server header contains its name, connection/refresh state, menu bar selection and management menu. Names truncate in the middle and expose their full value in a tooltip.
-- GPU rows share columns for index/name, utilization, VRAM and temperature. Numeric values use monospaced digits; bars are supplementary, not the sole status indication.
-- Sessions use disclosure buttons and row separators. Only the pinned job receives a selection background. **고정**, **감시** and **로그** have visible labels; selection uses native checkboxes.
-- Settings use aligned fields, section headings and separators. Supporting observation details sit in a disclosure group. No nested material cards are needed.
-- SSH setup uses standard text fields with focus rings, a labelled alias menu, a native target picker and explicit cancel/submit actions. Logs use a selectable monospaced text surface with wrapping, copy, refresh and end navigation.
+| Layer | Used for | Readability treatment |
+| --- | --- | --- |
+| Canvas | Window and sheet backgrounds | Behind-window system material and a light neutral backing |
+| Controls | Header, filters, footer, menus and color choices | Clearer glass with a subtle reflecting edge |
+| Panels | Servers, settings sections, server input form, empty state | Frosted glass that separates groups from the canvas |
+| Reading wells | GPU table, tmux sessions, pinned job and log text | Denser neutral backing to reduce transmission behind text |
 
-## Typography and color
+`MonitorGlassSurface` owns this hierarchy. On macOS 26+ it uses native `glassEffect(.regular, in:)`. A neutral fill is composited **over the material and behind content**: 12%, 22%, 34% and 58% for the four layers. These are backing opacities, not a claim about the optical transparency of the system material. Text itself is never faded to achieve a glass effect.
 
-Use the system font without additional font assets: `headline` for server/section titles, `body`/`callout` for readings and controls, `caption` for secondary details and `title3` for training progress. Log content uses the system monospaced font. GPU values share trailing alignment.
+The canvas includes an AppKit `NSVisualEffectView` with behind-window blending. The independent window has a transparent titlebar and full-size content background while retaining the native title, window buttons, safe area and resize behavior. Neither the desktop nor the titlebar is recreated as a bitmap.
 
-`NSColor.windowBackgroundColor`, `controlBackgroundColor`, `textBackgroundColor`, `secondaryLabelColor` and `separatorColor` define neutral surfaces and text roles. The existing icon color preference supplies the accent for GPU/progress bars and content icons. Error and warning states retain semantic colors and explicit text. Selected controls also have a checkmark or native selection treatment. Disabled icon actions use `disabledControlTextColor`.
+## Selected server
 
-## Materials and motion
+The selected server uses a lightly accent-tinted native glass surface, an understated color wash and translucent edge bands that fade inward. A directional highlight gives the surface a reflective rim. It no longer uses a uniform accent-colored outline. The **메뉴바** checkmark remains the explicit selection indicator; pinned jobs use the same material treatment and retain their **고정** checkbox.
 
-On macOS 26+ with Swift 6.2+, functional header and sheet buttons use native `.glass`/`.glassProminent` styles within `GlassEffectContainer`. Nonprimary buttons keep a neutral glass surface so accent-colored symbols remain legible. Content, logs, GPU rows and settings sections do not stack glass effects, gradients or shadows.
+No selection animation, external glow or continuously moving effect is added. The small panel shadow separates surfaces; reading wells do not add another shadow.
 
-Older systems/toolchains and Reduce Transparency use standard bordered buttons in the same layout. System surfaces are already opaque. Increased Contrast strengthens server outlines. There are no custom entrance or continuous animations; native controls handle their own motion and focus behavior.
+## Controls and information
 
-## macOS behavior
+- The GPU table remains aligned in rows. Utilization, VRAM and temperature use monospaced digits; `100%` remains on one line.
+- Header, row, retry, log and sheet actions share native glass button styles. Nonprimary glass stays neutral so accent-colored symbols remain legible.
+- Segmented pickers, checkboxes, text fields and menus preserve native semantics and focus behavior. They sit on the shared glass control/form surfaces.
+- Server and session disclosures, visible **고정 / 감시 / 로그** actions, error text, timestamps and progress scope remain available.
+- Settings retain aligned controls within compact glass sections. Main preferences fit the default window without scrolling.
+- Log text has the densest backing, system monospaced type, selection/copy, wrapping and scrolling.
 
-The menu bar popover is 520 × 700. Its **윈도우** action opens a resizable independent window with a minimum content size of 520 × 420. The window saves its frame and is reused when reopened. Native window buttons and the AppKit Window/Edit menus provide standard close, minimize, selection and clipboard behavior.
+The system font is used throughout: `headline` for titles, `body`/`callout` for readings and controls, `caption` for supporting text and `title3` for progress. No font assets are bundled. The existing user-selected icon color supplies GPU/progress bars, content icons and selection glass. Errors and warnings keep their semantic colors and text.
 
-- `⌘0`: open the monitor window while the app is active.
-- `⌘R`, `⌘N`, `⌘,`: refresh, add a server, switch settings.
-- `⌘W`, `⌘M`, `⌘Q`: close, minimize, quit.
-- Return submits a valid server form; Escape dismisses a sheet.
+## Compatibility and accessibility
 
-Dashboard/settings navigation preserves expansion and scroll state. Hidden content does not receive input or accessibility focus. Log sheets follow a stable pane identity even when a job leaves the current filter. Destructive actions retain their native confirmations and remote fresh-state validation.
+Native Liquid Glass requires macOS 26+ and Swift 6.2+. Older systems/toolchains use standard regular/thick system materials and bordered controls in the same layout. They do not reproduce native glass refraction.
 
-## References and validation
+Reduce Transparency removes behind-window transparency and native glass, fills surfaces opaquely and uses standard controls. Increased Contrast strengthens surface boundaries. Text and selection indicators remain explicit. There are no custom motion effects; native control motion is managed by the OS.
 
-- [Apple — Materials](https://developer.apple.com/design/human-interface-guidelines/materials)
-- [Apple — Typography](https://developer.apple.com/design/human-interface-guidelines/typography)
+## Validation — 0.8.0
+
+- Native build plus older Swift compatibility compilation.
+- 61 Python/Swift checks covering collection, job transitions, refresh, guarded deletion, preferences, filters and menu icon rendering.
+- Synthetic light/dark rendering of dashboard, settings, add-server, logs, empty/error states, 4/8 GPUs, long names, 100% readings, minimum/default/wide windows.
+- Running-app inspection of the glass canvas, titlebar, selected-server tint/edges, settings and readable log surface. SSH input focus, Escape dismissal and standard controls remain available.
+- macOS 14 and 26 CI run tests, build the app and verify its signature.
+
+Accessibility fallbacks are reviewed in code; this check does not change global system accessibility preferences. README screenshots use synthetic data and compatibility materials. Native glass and behind-window optics are separately checked in the running app and are not fully reproduced by an offscreen bitmap.
+
+Menu bar icon geometry, activity logic, saved shape/color choices and remote job behavior are unchanged. The resizable window, frame restoration and standard `⌘0`, `⌘W`, `⌘M`, `⌘R`, `⌘N`, `⌘,`, `⌘Q` actions remain available.
+
+## References
+
 - [Apple — Applying Liquid Glass to custom views](https://developer.apple.com/documentation/swiftui/applying-liquid-glass-to-custom-views)
-- [Blake Crosley — Liquid Glass SwiftUI patterns](https://blakecrosley.com/ko/blog/liquid-glass-swiftui-patterns)
-
-The [0.7.0 audit](design-audit.md) records observable problems and the resulting changes. README images use synthetic data rendered with the compatibility controls. Native glass is checked separately in the running app; an offscreen bitmap does not reproduce its optical effects. System accessibility preferences are handled through native behavior/shared modifiers; changing those system settings is not part of the manual test.
-
-Menu bar circle/barcode rendering, the bundled app icon and saved icon preferences are preserved. Circles cover 1–8 GPUs clockwise from 12 o’clock; counts above eight have no special handling.
+- [Apple — Glass](https://developer.apple.com/documentation/swiftui/glass)
+- [Apple — Typography](https://developer.apple.com/design/human-interface-guidelines/typography)
+- [0.7.0 information and interaction audit](design-audit.md)

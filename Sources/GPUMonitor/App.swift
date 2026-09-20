@@ -91,8 +91,11 @@ import SwiftUI
             let controller = NSHostingController(rootView: DashboardView(monitor: monitor))
             let dashboard = NSWindow(contentViewController: controller)
             dashboard.title = "GPU Monitor"
-            dashboard.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+            dashboard.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
             dashboard.isReleasedWhenClosed = false
+            dashboard.isOpaque = false
+            dashboard.backgroundColor = .clear
+            dashboard.titlebarAppearsTransparent = true
             dashboard.contentMinSize = MonitorAppearance.minimumWindowSize
             dashboard.setContentSize(MonitorAppearance.dashboardSize)
             dashboard.center()

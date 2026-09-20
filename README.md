@@ -17,7 +17,7 @@ SwiftUI와 AppKit으로 만든 작은 메뉴바 앱입니다. 기존 SSH 설정�
   <img src="docs/images/dashboard-dark.png" width="46%" alt="다크 모드 — 예시 서버의 GPU와 학습 진행률" />
 </p>
 
-*주황색을 선택한 예시 데이터의 정적 미리보기입니다. 이미지는 호환 컨트롤로 렌더링했으며, macOS 26 이상에서는 조작 버튼에 네이티브 Liquid Glass가 적용됩니다. [디자인 기준](docs/design.md) · [점검 결과](docs/design-audit.md)*
+*파랑을 선택한 예시 데이터의 정적 미리보기입니다. 이미지는 호환 머티리얼로 렌더링했으며, macOS 26 이상에서는 창과 섹션·조작부에 네이티브 Liquid Glass가 적용됩니다. [디자인 기준](docs/design.md) · [점검 결과](docs/design-audit.md)*
 
 ## 주요 기능
 
@@ -25,7 +25,7 @@ SwiftUI와 AppKit으로 만든 작은 메뉴바 앱입니다. 기존 SSH 설정�
 | --- | --- |
 | 여러 SSH 서버 | SSH 별칭 또는 `user@host`로 등록하고 서버별 조회 제어 |
 | GPU 상태 | GPU별 사용률, VRAM, 온도와 활성 GPU를 보여주는 분할 원 아이콘 |
-| Liquid Glass 창 | macOS 26+의 네이티브 글래스 조작부, 선택 색상을 GPU 막대·창 내부 아이콘에 연동 |
+| Liquid Glass 창 | 창·서버·설정·로그에 이어지는 Glass 재질, 가독성에 따른 투명도 구분 |
 | 메뉴바 아이콘 | 분할 원 / 바코드 모양, 파랑·초록·주황·보라·흑백 선택 |
 | 메뉴바 서버 선택 | 서버 카드의 **메뉴바** 버튼으로 표시할 서버 선택·저장 |
 | 학습 진행률 | tmux의 tqdm, `step N/M`, `epoch N/M`과 ETA 감지 |
@@ -68,11 +68,11 @@ ssh training-server
 
 ## Liquid Glass 디자인과 색상
 
-GPU 수치는 정렬된 행으로, 학습 정보는 tmux 세션 아래에 표시합니다. 설정은 기본 Picker·체크박스·구분선으로 정리했습니다. Liquid Glass는 상단과 보조창의 조작 버튼에 적용하고, 수치와 로그에는 중립적인 시스템 표면을 사용합니다.
+윈도우 배경부터 서버·설정 섹션, GPU·tmux 영역, 입력창과 로그까지 같은 Glass 재질로 연결했습니다. 창 배경은 더 투명하게, 수치와 로그 뒤는 더 짙게 서리 낀 표면으로 구분합니다. 텍스트 자체는 흐리게 만들지 않습니다. 선택한 서버는 유리에 스며드는 강조색과 안쪽으로 흐려지는 가장자리 반사로 표시하며, 메뉴바 체크 표시도 유지합니다.
 
-- **macOS 26 이상:** 네이티브 `.glass`·`.glassProminent` 버튼과 `GlassEffectContainer` 사용.
-- **macOS 13–15:** 같은 배치의 표준 macOS 컨트롤로 표시.
-- **투명도 줄이기:** 표준 버튼으로 전환. 콘텐츠 표면은 불투명하며 사용자 정의 등장 애니메이션은 사용하지 않습니다. 시스템 컨트롤이 기본 포커스·모션 동작을 처리합니다.
+- **macOS 26 이상:** 네이티브 `glassEffect` 표면, `.glass`·`.glassProminent` 버튼, 실제 윈도우 배경 머티리얼 사용.
+- **macOS 13–15:** 같은 배치의 표준 시스템 머티리얼과 macOS 컨트롤로 표시.
+- **투명도 줄이기:** 불투명한 표면과 표준 버튼으로 전환합니다. **대비 증가:** 표면 경계를 강화합니다. 사용자 정의 등장 애니메이션은 없으며, 시스템 컨트롤의 포커스·키보드 동작을 유지합니다.
 - **설정에서 고른 아이콘 색상:** 창의 GPU 사용률 막대, 학습 진행률 막대, 서버·GPU 아이콘과 조작 버튼에도 즉시 적용됩니다. 오류·경고는 의미를 유지하기 위해 빨강·주황을 사용합니다.
 
 메뉴바 아이콘은 아래 설정에서 모양과 색상을 선택할 수 있으며, 선택은 재실행 후에도 유지됩니다.
@@ -137,7 +137,7 @@ bash monitor-run python train.py --config experiment.yaml
 
 ## 소스에서 빌드
 
-macOS, Swift 5.9 이상, Python 3, Xcode 또는 Command Line Tools가 필요합니다. **네이티브 Liquid Glass를 포함하려면 Xcode 26 이상(Swift 6.2+)으로 빌드하세요.** 구형 도구는 표준 컨트롤을 사용하는 호환 경로를 빌드합니다. 외부 Swift/Python 패키지는 사용하지 않습니다.
+macOS, Swift 5.9 이상, Python 3, Xcode 또는 Command Line Tools가 필요합니다. **네이티브 Liquid Glass를 포함하려면 Xcode 26 이상(Swift 6.2+)으로 빌드하세요.** 구형 도구는 표준 머티리얼과 컨트롤을 사용하는 호환 경로를 빌드합니다. 외부 Swift/Python 패키지는 사용하지 않습니다.
 
 ```bash
 git clone https://github.com/HahnGyuTak/gpu-monitor.git
@@ -172,7 +172,7 @@ Ad-hoc 빌드는 macOS 알림 동작이 개발 서명 빌드와 다를 수 있�
 Sources/GPUMonitor/
   App.swift                 메뉴바와 앱 수명 주기
   Appearance.swift          라이트·다크 팔레트와 공통 화면 크기
-  GlassAppearance.swift     Liquid Glass·표준 컨트롤과 창 내부 색상 전달
+  GlassAppearance.swift     Glass 표면·가독성·선택 재질과 공통 컨트롤
   Views.swift               대시보드와 상단 탐색
   ServerViews.swift         서버 목록·GPU 행·세션·작업
   SettingsViews.swift       모양·모니터링·알림 설정

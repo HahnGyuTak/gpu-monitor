@@ -28,9 +28,7 @@ struct ServerCard: View {
         VStack(alignment: .leading, spacing: 10) {
             header
             if expanded { content }
-        }.padding(12).monitorCard()
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(isMenuServer ? accent.opacity(0.32) : Color.clear, lineWidth: 1))
+        }.padding(12).monitorSurface(.panel, radius: 16, selected: isMenuServer)
             .alert("서버를 목록에서 제거할까요?", isPresented: $removing) {
                 Button("취소", role: .cancel) { }
                 Button("목록에서 제거", role: .destructive) { monitor.remove(server.id) }
@@ -71,8 +69,8 @@ struct ServerCard: View {
                 .accessibilityLabel(server.alias + (expanded ? " 접기" : " 펼치기"))
                 .accessibilityValue(monitor.gpuState(for: server).toolTip)
             Button { monitor.selectMenuServer(server.id) } label: {
-                Label("메뉴바", systemImage: isMenuServer ? "checkmark.circle.fill" : "circle")
-            }.buttonStyle(.borderless).controlSize(.small).fixedSize()
+                AccentLabel(title: "메뉴바", symbol: isMenuServer ? "checkmark.circle.fill" : "circle")
+            }.monitorAction().controlSize(.small).fixedSize()
                 .help("이 서버의 GPU 요약을 메뉴바에 표시")
                 .accessibilityLabel(server.alias + " 메뉴바에 표시")
                 .accessibilityValue(isMenuServer ? "선택됨" : "선택 안 됨")
@@ -85,7 +83,7 @@ struct ServerCard: View {
             } label: {
                 Image(systemName: "ellipsis").foregroundStyle(accent).frame(width: 30, height: 30)
                     .contentShape(RoundedRectangle(cornerRadius: 9))
-            }.menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+            }.menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().monitorSurface(.chrome, radius: 8)
                 .help(server.alias + " 서버 관리").accessibilityLabel(server.alias + " 서버 관리")
                 .disabled(monitor.deletingSessions[server.id] != nil)
         }
@@ -97,13 +95,14 @@ struct ServerCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     StatusMessage(symbol: "wifi.exclamationmark", title: state.snapshot == nil ? "서버에 연결하지 못했습니다" : "마지막으로 확인한 상태입니다", detail: error, warning: true)
                     if server.enabled {
-                        Button { Task { await monitor.refresh(serverID: server.id) } } label: { Label("다시 연결", systemImage: "arrow.clockwise") }
-                            .buttonStyle(.bordered).controlSize(.small).disabled(busy)
+                        Button { Task { await monitor.refresh(serverID: server.id) } } label: { AccentLabel(title: "다시 연결", symbol: "arrow.clockwise") }
+                            .monitorAction().controlSize(.small).disabled(busy)
                     }
                 }
             }
             if let snapshot = state.snapshot {
                 GPUList(gpus: snapshot.gpus)
+                    .padding(.horizontal, 8).padding(.vertical, 4).monitorSurface(.well, radius: 10)
                 if snapshot.gpuPIDMappingLimited {
                     Label("GPU–pane 연결 일부 미확인", systemImage: "info.circle")
                         .font(.caption).foregroundStyle(muted)
@@ -250,7 +249,7 @@ struct SessionSection: View {
                     if job.pane.id != jobs.last?.pane.id { Divider().opacity(0.4) }
                 }
             }
-        }
+        }.padding(8).monitorSurface(.well, radius: 10)
         .alert("tmux 세션을 삭제할까요?", isPresented: Binding(get: { deletionCandidate != nil }, set: { if !$0 { deletionCandidate = nil } }), presenting: deletionCandidate) { candidate in
             Button("취소", role: .cancel) { deletionCandidate = nil }
             Button("세션 삭제", role: .destructive) {
@@ -288,7 +287,7 @@ struct JobRow: View {
                     Toggle("감시", isOn: Binding(get: { isWatched }, set: { _ in monitor.watch(server: server.id, pane: job.pane.id) }))
                         .help("새 오류와 종료 감시").accessibilityLabel(job.pane.location + " 알림 감시")
                     Button { showLogs(job.pane) } label: { AccentLabel(title: "로그", symbol: "text.alignleft") }
-                        .buttonStyle(.borderless).accessibilityLabel(job.pane.location + " 로그 보기")
+                        .monitorAction().accessibilityLabel(job.pane.location + " 로그 보기")
                 }.toggleStyle(.checkbox).controlSize(.small).font(.callout).fixedSize()
 
             }
@@ -308,7 +307,9 @@ struct JobRow: View {
             if !connected { Text("마지막 확인 상태").font(.caption).foregroundStyle(muted) }
             if let error = job.pane.captureError { Text("화면 읽기 실패: \(error)").font(.caption).foregroundStyle(.orange) }
         }.padding(.horizontal, 8).padding(.vertical, 8)
-            .background(isPinned ? accent.opacity(0.07) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+            .background {
+                if isPinned { MonitorGlassSurface(layer: .well, radius: 8, selected: true) }
+            }
     }
 
     private var gpuLabel: String {

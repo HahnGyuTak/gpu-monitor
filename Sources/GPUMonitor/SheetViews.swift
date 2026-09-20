@@ -48,7 +48,7 @@ struct AddServerView: View {
                             ForEach(monitor.aliases, id: \.self) { name in Button(name) { alias = name; error = nil } }
                         } label: {
                             Text("SSH 설정")
-                        }.menuStyle(.borderedButton).fixedSize()
+                        }.menuStyle(.borderedButton).fixedSize().monitorSurface(.chrome, radius: 6)
                             .foregroundStyle(Color(nsColor: MonitorAppearance.iconColor(monitor.preferences.menuIconColor)))
                             .disabled(monitor.aliases.isEmpty).help("SSH 설정에서 선택").accessibilityLabel("SSH 설정에서 별칭 선택")
                     }
@@ -63,7 +63,7 @@ struct AddServerView: View {
                     Text(target == 0 ? "SSH 설정의 Docker RemoteCommand를 자동 인식합니다." : (target == 1 ? "컨테이너를 거치지 않고 SSH 호스트를 조회합니다." : "해당 컨테이너 내부의 GPU와 tmux를 조회합니다."))
                         .font(.caption).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
                 }
-            }
+            }.padding(12).monitorSurface(.panel)
             if let error { StatusMessage(symbol: "exclamationmark.triangle", title: error, warning: true) }
             Text("SSH 키 인증을 사용합니다. 터미널에서 한 번 연결해 호스트 키를 확인한 서버를 추가하세요.")
                 .font(.caption).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
@@ -179,14 +179,13 @@ struct LogView: View {
                         HStack {
                             Text("최근 tmux 화면").font(.caption).foregroundStyle(muted)
                             Spacer()
-                            Button { proxy.scrollTo("log-end", anchor: .bottomLeading) } label: { Label("맨 아래", systemImage: "arrow.down.to.line") }
-                                .buttonStyle(.borderless).controlSize(.small)
+                            Button { proxy.scrollTo("log-end", anchor: .bottomLeading) } label: { AccentLabel(title: "맨 아래", symbol: "arrow.down.to.line") }
+                                .monitorAction().controlSize(.small)
                         }.padding(.horizontal, 12).padding(.bottom, 4)
                     }.onAppear { proxy.scrollTo("log-end", anchor: .bottomLeading) }
                         .onChange(of: wrap) { _ in proxy.scrollTo("log-end", anchor: .bottomLeading) }
                 }
             }
-        }.frame(maxWidth: .infinity, maxHeight: .infinity).background(inset, in: RoundedRectangle(cornerRadius: 6))
-            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(outlineColor.opacity(0.5)))
+        }.frame(maxWidth: .infinity, maxHeight: .infinity).monitorSurface(.well, radius: 12)
     }
 }

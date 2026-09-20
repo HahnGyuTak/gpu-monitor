@@ -9,7 +9,7 @@ struct SettingsSection<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeading(title: title, symbol: symbol)
             content()
-        }.frame(maxWidth: .infinity, alignment: .leading)
+        }.frame(maxWidth: .infinity, alignment: .leading).padding(12).monitorSurface(.panel)
     }
 }
 
@@ -56,7 +56,7 @@ struct MenuIconSettingsView: View {
                     .foregroundStyle(Color(nsColor: MonitorAppearance.iconColor(color)))
                 Text(color.label).foregroundStyle(Color.primary)
             }.font(.callout).padding(.vertical, 5).frame(maxWidth: .infinity)
-        }.buttonStyle(.borderless)
+        }.buttonStyle(.borderless).monitorSurface(.chrome, radius: 8, selected: selected)
             .accessibilityLabel("강조 색상 " + color.label).accessibilityValue(selected ? "선택됨" : "선택 안 됨")
             .accessibilityAddTraits(selected ? .isSelected : [])
     }
@@ -68,27 +68,23 @@ struct SettingsView: View {
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     MenuIconSettingsView(monitor: monitor)
-                    Divider()
                     monitoring
-                    Divider()
                     notifications
-                    Divider()
                     DisclosureGroup("관측 범위") {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("GPU 사용률은 서버 전체, 진행률은 로그의 현재 단계 기준입니다. 100%만으로 정상 종료를 판단하지 않습니다.")
                             Text("Mac이 잠들거나 앱이 종료되면 조회가 멈춥니다. 다시 연결해 현재 상태를 확인하지만 그 사이 사라진 로그는 복구하지 못합니다.")
                         }.font(.caption).foregroundStyle(muted).padding(.top, 6)
-                    }.font(.callout)
-                }.padding(20).frame(maxWidth: 760, alignment: .leading).frame(maxWidth: .infinity, alignment: .leading)
+                    }.font(.callout).padding(12).monitorSurface(.panel)
+                }.padding(12).frame(maxWidth: 760, alignment: .leading).frame(maxWidth: .infinity, alignment: .leading)
             }
-            Divider()
             HStack {
                 Text("GPU Monitor \(version)").font(.caption).foregroundStyle(muted)
                 Spacer()
-                Button("앱 종료") { NSApplication.shared.terminate(nil) }.buttonStyle(.bordered).controlSize(.small)
-            }.padding(.horizontal, 16).padding(.vertical, 8)
+                Button("앱 종료") { NSApplication.shared.terminate(nil) }.monitorAction().controlSize(.small)
+            }.padding(.horizontal, 16).padding(.vertical, 8).monitorSurface(.chrome, radius: 0)
         }
     }
 
@@ -98,7 +94,7 @@ struct SettingsView: View {
                 Text("조회 간격").frame(width: 88, alignment: .leading)
                 Picker("조회 간격", selection: Binding(get: { monitor.preferences.interval }, set: { monitor.preferences.interval = $0; monitor.save() })) {
                     Text("5초").tag(5.0); Text("10초").tag(10.0); Text("30초").tag(30.0); Text("60초").tag(60.0)
-                }.pickerStyle(.menu).labelsHidden().frame(width: 90)
+                }.pickerStyle(.menu).labelsHidden().frame(width: 90).monitorSurface(.chrome, radius: 6)
                 Spacer()
             }
             Toggle("간결한 메뉴바", isOn: Binding(get: { monitor.preferences.compact }, set: { monitor.preferences.compact = $0; monitor.save() }))
@@ -113,7 +109,7 @@ struct SettingsView: View {
                 Toggle("macOS 알림", isOn: Binding(get: { monitor.preferences.notifications }, set: { monitor.setNotifications($0) }))
                     .toggleStyle(.checkbox).disabled(monitor.requestingNotifications)
                 Spacer()
-                Button("알림 테스트") { monitor.testNotification() }.buttonStyle(.bordered).controlSize(.small)
+                Button("알림 테스트") { monitor.testNotification() }.monitorAction().controlSize(.small)
                     .disabled(!monitor.preferences.notifications || monitor.requestingNotifications)
             }
             Text("감시를 켠 pane의 새 오류와 종료를 알립니다. 처음 연결했을 때의 과거 로그는 알리지 않습니다.")
