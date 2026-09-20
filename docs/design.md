@@ -2,10 +2,11 @@
 
 GPU Monitor uses the installed macOS design system: AppKit owns the window material, SwiftUI supplies native controls and content surfaces, and system fonts and SF Symbols supply the typography and icons. Menu bar geometry and monitoring behavior are unchanged.
 
-## Observations and changes — 0.9.4
+## Observations and changes — 0.9.5
 
 | Observed problem | Change |
 | --- | --- |
+| Job filters left every server card visible, making their effect and scope unclear | Replace them with All / Running / Querying server filters, a visible definition, matching/total counts and actionable empty states |
 | A custom accent focus outline also appeared after a mouse selection, dominating the Glass surface | Remove the drawn accent outline and selected-surface tint. Use neutral interactive regular Glass for selection and native focus effects only during keyboard navigation |
 | All servers opened their GPU and tmux details at launch, including servers outside the current menu target | Initially expand only the menu target. Keep manual disclosure changes across polling; expand the new target and collapse the old target when selection changes |
 | Segmented pickers retained a flat track and selection while adjacent actions used native Glass | Share a compact Glass track and neutral interactive selection across job filters, icon style and server target controls. Preserve a native accessibility picker representation, keyboard navigation and an opaque fallback |
@@ -35,6 +36,12 @@ Backing values describe a layer over the native material, not measured optical t
 
 The panel opens beneath the status item on its display and remains within the visible screen area. It accepts keyboard focus, retains its SwiftUI state between openings, and closes on a repeated icon click, Escape, another window click or app deactivation. Native menus remain usable. An attached sheet handles its own confirmation or cancellation before its parent can dismiss. Mouse-only outside-click observation does not capture keyboard input.
 
+## Server filtering
+
+All includes every registered server. Querying includes servers enabled for SSH polling while automatic polling is not paused, including idle GPUs, initial connections and retries. It does not depend on an individual request being in flight. Running is the subset with current GPU activity using the same evidence and freshness rules as the menu icon; CPU-only tmux work or allocated VRAM alone does not qualify. Stale readings and connection failures cannot appear as current GPU execution.
+
+The running list ages every five seconds even if new observations stop arriving. Visible servers retain all their tmux jobs, including tracked missing panes; notification watches are independent of server filtering. Log sheets belong to the dashboard so a GPU becoming idle cannot dismiss an open log when its server leaves the list. Empty filters explain the cause and offer navigation or resuming polling.
+
 ## Controls, color and information
 
 - Color choices are 24-point swatches with a 32-point selection ring and a 36-point button area. The monochrome choice uses a half-filled circle. Names remain available to VoiceOver and in tooltips.
@@ -57,7 +64,7 @@ Reduce Transparency supplies opaque semantic surfaces and standard buttons; the 
 - Inspect the live native window over a separate four-color window with large background text. Check both actual backdrop transmission and legibility of the foreground content.
 - Inspect settings swatches, accent propagation, server selection, add-server focus, log wrapping and sheet dismissal in the live native preview.
 - Render synthetic light/dark dashboard, settings, add-server, logs, empty/error states, 4/8 GPUs, long names, 100% readings and minimum/default/wide windows.
-- Run the 65 Python/Swift checks, including menu-bar panel placement at screen edges, on short displays and on secondary displays with negative coordinates, and the native release build. Compile the older Swift compatibility path. CI tests and builds on macOS 14 and 26.
+- Run the 69 Python/Swift checks, including server filter membership, GPU evidence, stale readings, SSH failure, paused polling and menu-bar panel placement, and the native release build. CI tests and builds on macOS 14 and 26.
 
 Accessibility branches are reviewed without changing the user’s global settings. Offscreen README images use synthetic data and compatibility materials; they do not reproduce actual behind-window optics. Native Glass is checked separately in a running window. This does not imply manual testing on every supported macOS version.
 

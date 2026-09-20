@@ -5,15 +5,13 @@ struct ServerCard: View {
     @Environment(\.monitorAccent) private var accent
     @ObservedObject var monitor: Monitor
     let server: ServerConfig
-    let filter: JobFilter
+    let showLogs: (Pane) -> Void
     @State private var expanded: Bool
     @State private var removing = false
-    @State private var logPane: Pane?
-
-    @MainActor init(monitor: Monitor, server: ServerConfig, filter: JobFilter) {
+    @MainActor init(monitor: Monitor, server: ServerConfig, showLogs: @escaping (Pane) -> Void) {
         self.monitor = monitor
         self.server = server
-        self.filter = filter
+        self.showLogs = showLogs
         _expanded = State(initialValue: monitor.menuServer?.id == server.id)
     }
 
@@ -26,7 +24,7 @@ struct ServerCard: View {
         if monitor.paused { return "자동 조회 일시 정지" }
         return state.resolvedContainer.map { "Docker · " + $0 } ?? (server.container == "" ? "SSH 호스트" : "SSH 서버")
     }
-    private var jobs: [JobObservation] { state.visibleJobs(serverID: server.id, filter: filter, preferences: monitor.preferences) }
+    private var jobs: [JobObservation] { state.visibleJobs(serverID: server.id, preferences: monitor.preferences) }
     private var sessions: [String] {
         var seen = Set<String>()
         return jobs.map { $0.pane.session }.filter { seen.insert($0).inserted }
@@ -44,9 +42,6 @@ struct ServerCard: View {
                 Button("목록에서 제거", role: .destructive) { monitor.remove(server.id) }
             } message: {
                 Text("\(server.alias)의 메뉴바 고정과 알림 감시 설정도 해제됩니다. 원격 서버의 작업과 tmux 세션은 유지됩니다.")
-            }
-            .sheet(item: $logPane) { pane in
-                LogView(monitor: monitor, server: server, initialPane: pane).monitorTheme(monitor.preferences.menuIconColor)
             }
     }
 
@@ -152,25 +147,18 @@ struct ServerCard: View {
             if !snapshot.tmuxHealthy {
                 StatusMessage(symbol: "exclamationmark.triangle", title: "tmux 목록 갱신이 지연되고 있습니다", detail: "아래 작업은 마지막으로 확인한 상태입니다.", warning: true)
             } else if sessions.isEmpty {
-                Text(emptyTitle + (filter == .watched ? " · 작업의 감시를 켜면 표시됩니다." : ""))
+                Text("tmux 세션이 없습니다")
                     .font(.callout).foregroundStyle(muted).padding(.vertical, 4)
             }
             ForEach(sessions, id: \.self) { session in
                 SessionSection(monitor: monitor, server: server, session: session,
                                jobs: jobs.filter { $0.pane.session == session },
                                connected: state.error == nil && server.enabled && snapshot.tmuxHealthy,
-                               showLogs: { logPane = $0 })
+                               showLogs: showLogs)
             }
         }.padding(.top, 2)
     }
 
-    private var emptyTitle: String {
-        switch filter {
-        case .all: return "tmux 세션이 없습니다"
-        case .running: return "실행 중인 작업이 없습니다"
-        case .watched: return "감시 중인 작업이 없습니다"
-        }
-    }
 }
 
 struct GPUList: View {

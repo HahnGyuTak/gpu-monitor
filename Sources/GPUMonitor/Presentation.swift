@@ -1,25 +1,28 @@
 import Foundation
 
-enum JobFilter: CaseIterable {
-    case all, running, watched
+enum ServerFilter: CaseIterable {
+    case all, running, querying
     var label: String {
         switch self {
         case .all: return "전체"
-        case .running: return "실행 중"
-        case .watched: return "감시 중"
+        case .running: return "실행"
+        case .querying: return "조회"
+        }
+    }
+    var summary: String {
+        switch self {
+        case .all: return "등록된 모든 서버 · 조회 중지 포함"
+        case .running: return "SSH 조회 중이며 활성 GPU가 있는 서버"
+        case .querying: return "SSH 조회가 켜진 모든 서버 · 연결 재시도 포함"
         }
     }
 }
 
 extension ServerViewState {
-    func visibleJobs(serverID: String, filter: JobFilter, preferences: Preferences) -> [JobObservation] {
+    func visibleJobs(serverID: String, preferences: Preferences) -> [JobObservation] {
         jobs.values.filter { job in
             let key = jobKey(serverID, job.pane.id)
-            switch filter {
-            case .running: return job.state == .running
-            case .watched: return preferences.watched.contains(key)
-            case .all: return job.state != .missing || preferences.watched.contains(key) || preferences.selected == key
-            }
+            return job.state != .missing || preferences.watched.contains(key) || preferences.selected == key
         }.sorted {
             if ($0.state == .running) != ($1.state == .running) { return $0.state == .running }
             if $0.pane.session != $1.pane.session { return $0.pane.session.localizedStandardCompare($1.pane.session) == .orderedAscending }

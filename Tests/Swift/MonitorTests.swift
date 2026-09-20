@@ -109,6 +109,57 @@ private actor ControlledDeletion: TmuxSessionManaging {
         await waitFor { monitor.states["a"]?.isLoading == false }
         require(!monitor.paused, "Resuming must immediately refresh enabled servers")
         print("PASS per-server enable and immediate refresh on resume")
-        print("4 Monitor integration checks passed")
+
+        let now = Date(timeIntervalSince1970: 10_000)
+        func gpu(utilization: Double? = 0, compute: Bool = false, memory: Double = 0) -> GPU {
+            GPU(index: 0, id: "gpu-0", name: "Test GPU", utilization: utilization,
+                memoryUsed: memory, memoryTotal: 40960, temperature: nil, hasComputeProcess: compute)
+        }
+        func state(_ gpu: GPU, panes: [Pane] = [], age: TimeInterval = 0, error: String? = nil) -> ServerViewState {
+            var snapshot = emptySnapshot
+            snapshot.gpus = [gpu]
+            snapshot.panes = panes
+            return ServerViewState(snapshot: snapshot, updatedAt: now.addingTimeInterval(-age), error: error)
+        }
+        let stopped = ServerConfig(id: "stopped", alias: "stopped", enabled: false)
+        let active = ServerConfig(id: "active", alias: "active")
+        let idle = ServerConfig(id: "idle", alias: "idle")
+        monitor.preferences = Preferences(servers: [stopped, active, idle])
+        monitor.states = [stopped.id: state(gpu(utilization: 99)), active.id: state(gpu(utilization: 72)), idle.id: state(gpu())]
+        require(monitor.visibleServers(matching: .all, at: now).map(\.id) == ["stopped", "active", "idle"], "All must preserve registered server order, including stopped servers")
+        require(monitor.visibleServers(matching: .querying, at: now).map(\.id) == ["active", "idle"], "Querying means polling enabled, including the gap between SSH requests")
+        require(monitor.visibleServers(matching: .running, at: now).map(\.id) == ["active"], "Running must filter server cards and exclude stopped servers with cached active GPUs")
+        print("PASS server filters distinguish all, querying and GPU-active servers")
+
+        let worker = Worker(pid: 12, name: "python", identity: "12:1")
+        let mapped = Pane(id: "%0", session: "train", window: "0", index: "0", pid: 11, command: "python", dead: false,
+                          workers: [worker], instance: "11:1", gpuIDs: ["gpu-0"], events: [], preview: "training")
+        var cpuOnly = mapped
+        cpuOnly.gpuIDs = []
+        let signals: [(String, GPU, [Pane])] = [
+            ("utilization", gpu(utilization: 1), []), ("compute", gpu(utilization: nil, compute: true), []),
+            ("mapped", gpu(), [mapped]), ("cpu-only", gpu(), [cpuOnly]),
+            ("memory-only", gpu(memory: 32768), []), ("unknown", gpu(utilization: nil), [])
+        ]
+        monitor.preferences.servers = signals.map { ServerConfig(id: $0.0, alias: $0.0) }
+        monitor.states = Dictionary(uniqueKeysWithValues: signals.map { ($0.0, state($0.1, panes: $0.2)) })
+        require(monitor.visibleServers(matching: .running, at: now).map(\.id) == ["utilization", "compute", "mapped"], "Use the icon's GPU activity evidence; CPU tmux jobs and VRAM allocation alone must not qualify")
+        print("PASS running filter uses GPU evidence rather than tmux activity or allocated memory")
+
+        monitor.preferences.servers = ["fresh", "stale", "failed", "connecting"].map { ServerConfig(id: $0, alias: $0) }
+        monitor.states = ["fresh": state(gpu(compute: true), age: 45), "stale": state(gpu(compute: true), age: 46),
+                          "failed": state(gpu(compute: true), error: "SSH disconnected"), "connecting": ServerViewState(isLoading: true)]
+        require(monitor.visibleServers(matching: .running, at: now).map(\.id) == ["fresh"], "Unknown, failed and stale observations must not appear as GPU execution")
+        require(monitor.visibleServers(matching: .querying, at: now).count == 4, "Pending connections and retries must remain available in Querying")
+        require(monitor.visibleServers(matching: .running, at: now.addingTimeInterval(1)).isEmpty, "Running results must expire without receiving another observation")
+        monitor.preferences.interval = 60
+        require(monitor.visibleServers(matching: .running, at: now).map(\.id) == ["fresh", "stale"], "Freshness must respect the configured polling interval")
+        print("PASS server execution filtering handles stale data, SSH failure and initial connection")
+
+        monitor.paused = true
+        require(monitor.visibleServers(matching: .all, at: now).count == 4, "Pause must not remove registered servers from All")
+        require(monitor.visibleServers(matching: .running, at: now).isEmpty && monitor.visibleServers(matching: .querying, at: now).isEmpty, "Paused monitoring must not claim servers are currently being queried, even with an in-flight request")
+        print("PASS paused polling is separate from per-server query settings")
+        print("8 Monitor integration checks passed")
     }
 }

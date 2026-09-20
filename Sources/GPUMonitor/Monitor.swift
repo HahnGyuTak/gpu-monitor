@@ -275,13 +275,24 @@ import UserNotifications
         return gpuState(for: server)
     }
 
-    func gpuState(for server: ServerConfig) -> GPUPieState {
+    func visibleServers(matching filter: ServerFilter, at now: Date = Date()) -> [ServerConfig] {
+        preferences.servers.filter { server in
+            switch filter {
+            case .all: return true
+            case .querying: return server.enabled && !paused
+            case .running:
+                return server.enabled && !paused && gpuState(for: server, at: now).slices.contains(where: \.active)
+            }
+        }
+    }
+
+    func gpuState(for server: ServerConfig, at now: Date = Date()) -> GPUPieState {
         let state = states[server.id]
         let snapshot = state?.snapshot
         let status: String?
         if paused || !server.enabled { status = "일시 정지" }
         else if state?.error != nil { status = "연결 끊김 · 마지막 GPU 구성" }
-        else if let updated = state?.updatedAt, Date().timeIntervalSince(updated) > max(45, preferences.interval * 3) { status = "갱신 지연" }
+        else if let updated = state?.updatedAt, now.timeIntervalSince(updated) > max(45, preferences.interval * 3) { status = "갱신 지연" }
         else if snapshot == nil { status = "GPU 연결 중" }
         else { status = nil }
         return GPUPieState.make(server: server.alias, gpus: snapshot?.gpus ?? [], panes: snapshot?.panes ?? [], status: status)
