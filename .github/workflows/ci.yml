@@ -1,0 +1,19 @@
+name: macOS checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  build-and-test:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test collectors and state transitions
+        run: bash test.sh
+      - name: Build app
+        env:
+          CODESIGN_IDENTITY: "-"
+        run: bash build.sh
+      - name: Verify signature
+        run: codesign --verify --deep --strict "dist/GPU Monitor.app"

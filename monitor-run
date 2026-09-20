@@ -1,0 +1,13 @@
+#!/bin/bash
+# Optional wrapper: run INSIDE the monitored tmux pane. No remote installation
+# is performed by the macOS app. The marker confirms the command's exit code,
+# not the quality or completeness of its training output.
+if [ "$#" -eq 0 ]; then
+    printf 'Usage: bash monitor-run python train.py [arguments...]\n' >&2
+    exit 2
+fi
+gpu_monitor_run_id="$(date +%s)-$$"
+"$@"
+gpu_monitor_exit_code=$?
+printf '\nGPU_MONITOR_EXIT run=%s code=%s\n' "$gpu_monitor_run_id" "$gpu_monitor_exit_code"
+exit "$gpu_monitor_exit_code"
