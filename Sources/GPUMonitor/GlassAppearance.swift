@@ -185,6 +185,7 @@ struct MonitorSegmentedPicker<Value: Hashable>: View {
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.isEnabled) private var enabled
     @FocusState private var focusedOption: Value?
+    @State private var keyboardFocusVisible = false
     let label: String
     let options: [(Value, String)]
     @Binding var selection: Value
@@ -202,6 +203,7 @@ struct MonitorSegmentedPicker<Value: Hashable>: View {
         Picker(label, selection: Binding(get: { selection }, set: {
             selection = $0
             focusedOption = $0
+            keyboardFocusVisible = NSApp.currentEvent?.type == .keyDown
         })) {
             ForEach(options, id: \.0) { value, title in Text(title).tag(value) }
         }.pickerStyle(.segmented).labelsHidden().accessibilityLabel(label)
@@ -217,6 +219,7 @@ struct MonitorSegmentedPicker<Value: Hashable>: View {
                     Button {
                         selection = value
                         focusedOption = value
+                        keyboardFocusVisible = NSApp.currentEvent?.type == .keyDown
                     } label: {
                         HStack(spacing: 5) {
                             Image(systemName: "checkmark").font(.caption2.weight(.semibold))
@@ -229,17 +232,15 @@ struct MonitorSegmentedPicker<Value: Hashable>: View {
                             .contentShape(Capsule())
                     }.buttonStyle(.plain).focusable(interactions: .edit)
                         .focused($focusedOption, equals: value)
-                        .focusEffectDisabled()
+                        .focusEffectDisabled(!keyboardFocusVisible)
                         .background {
                             if selected {
                                 Capsule().fill(.clear)
-                                    .glassEffect(.regular.tint(enabled ? accent.opacity(0.18) : nil).interactive(), in: .capsule)
+                                    .glassEffect(.regular.interactive(), in: .capsule)
                             }
                         }
                         .overlay {
-                            if focusedOption == value {
-                                Capsule().strokeBorder(accent, lineWidth: 2)
-                            } else if selected && contrast == .increased {
+                            if selected && contrast == .increased {
                                 Capsule().strokeBorder(Color.primary.opacity(0.55), lineWidth: 1)
                             }
                         }
@@ -249,6 +250,10 @@ struct MonitorSegmentedPicker<Value: Hashable>: View {
         }
         // Keep a single-choice picker for VoiceOver, including its selected value and actions.
         .accessibilityRepresentation { nativePicker }
+        .onChange(of: focusedOption) { value in
+            // A mouse selection uses Glass alone; let macOS show focus for keyboard navigation.
+            keyboardFocusVisible = value != nil && NSApp.currentEvent?.type == .keyDown
+        }
         .onMoveCommand { direction in
             guard enabled, let current = options.firstIndex(where: { $0.0 == focusedOption }) else { return }
             let next: Int
@@ -259,6 +264,7 @@ struct MonitorSegmentedPicker<Value: Hashable>: View {
             }
             selection = options[next].0
             focusedOption = options[next].0
+            keyboardFocusVisible = true
         }
     }
     #endif

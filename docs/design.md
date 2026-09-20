@@ -2,12 +2,13 @@
 
 GPU Monitor uses the installed macOS design system: AppKit owns the window material, SwiftUI supplies native controls and content surfaces, and system fonts and SF Symbols supply the typography and icons. Menu bar geometry and monitoring behavior are unchanged.
 
-## Observations and changes — 0.9.3
+## Observations and changes — 0.9.4
 
 | Observed problem | Change |
 | --- | --- |
+| A custom accent focus outline also appeared after a mouse selection, dominating the Glass surface | Remove the drawn accent outline and selected-surface tint. Use neutral interactive regular Glass for selection and native focus effects only during keyboard navigation |
 | All servers opened their GPU and tmux details at launch, including servers outside the current menu target | Initially expand only the menu target. Keep manual disclosure changes across polling; expand the new target and collapse the old target when selection changes |
-| Segmented pickers retained a flat track and selection while adjacent actions used native Glass | Share a compact Glass track and tinted selection across job filters, icon style and server target controls. Preserve a native accessibility picker representation, keyboard navigation and an opaque fallback |
+| Segmented pickers retained a flat track and selection while adjacent actions used native Glass | Share a compact Glass track and neutral interactive selection across job filters, icon style and server target controls. Preserve a native accessibility picker representation, keyboard navigation and an opaque fallback |
 | The menu-bar popover had a separate AppKit appearance and presentation surface despite sharing SwiftUI content | Present a borderless menu-bar panel with the same Glass hosting, neutral backing and transparent window configuration as the dashboard |
 | The previous window looked opaque even with a colorful separate window immediately behind it | Move Glass out of the SwiftUI background and make `NSGlassEffectView` the hosting controller’s root. Put the SwiftUI view in its supported `contentView` property |
 | Color names repeated information already visible in each color chip, adding five button-shaped boxes | Use compact color swatches with an outer selection ring, like the system Appearance choices. Keep names in tooltips and accessibility labels |
@@ -38,7 +39,7 @@ The panel opens beneath the status item on its display and remains within the vi
 
 - Color choices are 24-point swatches with a 32-point selection ring and a 36-point button area. The monochrome choice uses a half-filled circle. Names remain available to VoiceOver and in tooltips.
 - All actions use native Glass button styles where supported. Nonprimary buttons stay neutral so accent-colored symbols remain legible.
-- Segmented choices share a native Glass capsule track and tinted Glass selection. A checkmark distinguishes selection without color alone. Native buttons handle activation, left/right arrows change the focused option, and the native Picker accessibility representation preserves single-choice semantics. Older systems and Reduce Transparency use the standard segmented Picker.
+- Segmented choices share a native Glass capsule track and neutral interactive regular Glass selection, with no custom accent outline. A checkmark distinguishes selection without color alone. Keyboard navigation uses the system focus effect; mouse selection does not retain a keyboard focus outline. Native buttons handle activation, left/right arrows change the focused option, and the native Picker accessibility representation preserves single-choice semantics. Older systems and Reduce Transparency use the standard segmented Picker. Increased Contrast retains a thin semantic boundary.
 - Checkboxes, menus, fields and linear progress views retain system behavior. Progress values are clamped, and an idle 0% bar has no colored fill.
 - The chosen color immediately applies to window icons, GPU utilization and training progress. Errors and warnings retain semantic colors plus text.
 - System text styles distinguish headings, readings, controls and supporting text. Numeric columns use monospaced digits. No font files are bundled.
