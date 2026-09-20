@@ -68,7 +68,7 @@ ssh training-server
 
 ## Liquid Glass 디자인과 색상
 
-윈도우 배경부터 서버·설정 섹션, GPU·tmux 영역, 입력창과 로그까지 같은 Glass 재질로 연결했습니다. 창의 최하단에는 배경이 은은하게 비치는 기본 Glass 재질을 사용하고, 수치와 로그 뒤에는 더 짙은 표면을 사용합니다. 텍스트 자체는 흐리게 만들지 않습니다. 실제 창 바깥의 배경을 받는 AppKit Glass 안에 SwiftUI 화면을 넣었습니다. 선택한 서버는 기본 Glass 재질에 강조색이 스며들도록 표시하며, 메뉴바 체크 표시도 유지합니다.
+윈도우 배경부터 서버·설정 섹션, GPU·tmux 영역, 입력창과 로그까지 같은 Glass 재질로 연결했습니다. 창의 최하단에는 배경이 은은하게 비치는 기본 Glass 재질을 사용하고, 수치와 로그 뒤에는 더 짙은 표면을 사용합니다. 텍스트 자체는 흐리게 만들지 않습니다. 실제 창 바깥의 배경을 받는 AppKit Glass 안에 SwiftUI 화면을 넣었습니다. 선택한 서버는 기본 Glass 재질에 강조색이 스며들도록 표시하며, 메뉴바 체크 표시도 유지합니다. 메뉴바 화면도 독립 창과 같은 Glass 바탕을 쓰고, 아이콘을 다시 누르거나 바깥 클릭·Esc로 닫을 수 있습니다.
 
 - **macOS 26 이상:** 네이티브 `NSGlassEffectView` 창, `glassEffect` 콘텐츠 표면과 `.glass`·`.glassProminent` 버튼 사용.
 - **macOS 13–15:** 같은 배치의 표준 시스템 머티리얼과 macOS 컨트롤로 표시.
@@ -174,6 +174,7 @@ Sources/GPUMonitor/
   Appearance.swift          라이트·다크 팔레트와 공통 화면 크기
   GlassAppearance.swift     Glass 표면·가독성·선택 재질과 공통 컨트롤
   WindowHosting.swift       실제 창의 Glass 안에 SwiftUI 화면 배치
+  MenuBarPanel.swift        같은 Glass를 사용하는 메뉴바 패널과 화면 배치·닫기
   Views.swift               대시보드와 상단 탐색
   ServerViews.swift         서버 목록·GPU 행·세션·작업
   SettingsViews.swift       모양·모니터링·알림 설정
@@ -193,6 +194,6 @@ scripts/                    도구 환경과 릴리스 패키징
 .github/workflows/ci.yml     macOS 테스트·빌드
 ```
 
-`bash test.sh`는 Python 검사 37개와 Swift 검사 24개, 총 **61개**를 실행합니다. 실제 학습을 종료하거나 OOM을 유발하지 않으며 합성 관측과 제어된 테스트 객체로 상태 전이를 검증합니다.
+`bash test.sh`는 Python 검사 37개와 Swift 검사 28개, 총 **65개**를 실행합니다. 실제 학습을 종료하거나 OOM을 유발하지 않으며 합성 관측과 제어된 테스트 객체로 상태 전이를 검증합니다.
 
 W&B, Slurm, Kubernetes, AMD GPU, 사용자 지정 tmux 소켓과 로그인 시 자동 실행은 현재 지원하지 않습니다. W&B 같은 추가 데이터 소스를 연결할 수 있도록 `ObservationProvider` 인터페이스를 분리해 두었습니다.

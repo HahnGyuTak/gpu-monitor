@@ -3,7 +3,7 @@ import SwiftUI
 
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
-    private var popover: NSPopover!
+    private var menuPanel: MenuBarPanel!
     private var window: NSWindow?
     private var statusTimer: Timer?
     let monitor = Monitor()
@@ -17,12 +17,8 @@ import SwiftUI
         statusItem.button?.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         statusItem.button?.imagePosition = .imageLeading
         statusItem.button?.imageScaling = .scaleNone
-        popover = NSPopover()
-        popover.behavior = .transient
-        popover.contentSize = MonitorAppearance.dashboardSize
-        popover.contentViewController = GlassHostingController(rootView:
-            DashboardView(monitor: monitor, openWindow: { [weak self] in self?.showDashboard() })
-                .frame(width: MonitorAppearance.dashboardSize.width, height: MonitorAppearance.dashboardSize.height))
+        menuPanel = MenuBarPanel(content: GlassHostingController(rootView:
+            DashboardView(monitor: monitor, openWindow: { [weak self] in self?.showDashboard() })))
         monitor.onChange = { [weak self] in self?.updateStatusItem() }
         updateStatusItem()
         // Age the icon even when a server stops returning snapshots.
@@ -75,15 +71,12 @@ import SwiftUI
     }
 
     @objc func togglePopover() {
-        if popover.isShown { popover.performClose(nil) }
-        else if let button = statusItem.button {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            NSApp.activate(ignoringOtherApps: true)
-        }
+        if menuPanel.isVisible { menuPanel.dismiss() }
+        else if let button = statusItem.button { menuPanel.show(anchoredTo: button) }
     }
 
     @objc func showDashboard() {
-        popover?.performClose(nil)
+        menuPanel?.dismiss()
         if let window {
             if window.isMiniaturized { window.deminiaturize(nil) }
             window.makeKeyAndOrderFront(nil)

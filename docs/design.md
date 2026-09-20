@@ -2,10 +2,11 @@
 
 GPU Monitor uses the installed macOS design system: AppKit owns the window material, SwiftUI supplies native controls and content surfaces, and system fonts and SF Symbols supply the typography and icons. Menu bar geometry and monitoring behavior are unchanged.
 
-## Observations and changes — 0.9.1
+## Observations and changes — 0.9.2
 
 | Observed problem | Change |
 | --- | --- |
+| The menu-bar popover had a separate AppKit appearance and presentation surface despite sharing SwiftUI content | Present a borderless menu-bar panel with the same Glass hosting, neutral backing and transparent window configuration as the dashboard |
 | The previous window looked opaque even with a colorful separate window immediately behind it | Move Glass out of the SwiftUI background and make `NSGlassEffectView` the hosting controller’s root. Put the SwiftUI view in its supported `contentView` property |
 | Color names repeated information already visible in each color chip, adding five button-shaped boxes | Use compact color swatches with an outer selection ring, like the system Appearance choices. Keep names in tooltips and accessibility labels |
 | Several controls had both their native background and an additional custom Glass outline | Remove duplicate backings from segmented pickers, menus, header and footer. Preserve native focus and disabled states |
@@ -14,7 +15,7 @@ GPU Monitor uses the installed macOS design system: AppKit owns the window mater
 
 ## Window and content materials
 
-`GlassHostingController` owns the material at the actual AppKit window boundary. On macOS 26+ it embeds the SwiftUI hosting view in `NSGlassEffectView.contentView` with the system regular Glass style. The independent window uses a transparent titlebar and background while retaining real window buttons, safe areas, resizing and frame restoration. The popover uses the same hosting controller.
+`GlassHostingController` owns the material at the actual AppKit window boundary. On macOS 26+ it embeds the SwiftUI hosting view in `NSGlassEffectView.contentView` with the system regular Glass style. The independent window uses a transparent titlebar and background while retaining real window buttons, safe areas, resizing and frame restoration. The menu-bar panel uses the same hosting controller, clear window background and native window shadow. It replaces the extra NSPopover presentation surface; the accepted dashboard material values remain unchanged.
 
 The SwiftUI root knows when the native window already supplies Glass, so it does not place another full-window material over it. Server and log sheets use the system ultra-thin presentation material (macOS 13.3+) under their Glass content and controls, keeping native sheet sizing and dismissal. Older systems use a behind-window `NSVisualEffectView` with the popover material.
 
@@ -26,6 +27,10 @@ The SwiftUI root knows when the native window already supplies Glass, so it does
 | Reading wells | GPU table, tmux sessions, pinned job and logs | Native regular Glass with a denser 58% semantic neutral backing |
 
 Backing values describe a layer over the native material, not measured optical transparency. Text itself is never faded. A one-point inset leaves the native Glass edge visible without drawing a simulated reflection. Selected surfaces tint the native material with the chosen accent; the **메뉴바** checkmark and **고정** checkbox remain the explicit selection indicators.
+
+## Menu-bar behavior
+
+The panel opens beneath the status item on its display and remains within the visible screen area. It accepts keyboard focus, retains its SwiftUI state between openings, and closes on a repeated icon click, Escape, another window click or app deactivation. Native menus remain usable. An attached sheet handles its own confirmation or cancellation before its parent can dismiss. Mouse-only outside-click observation does not capture keyboard input.
 
 ## Controls, color and information
 
@@ -48,7 +53,7 @@ Reduce Transparency supplies opaque semantic surfaces and standard buttons; the 
 - Inspect the live native window over a separate four-color window with large background text. Check both actual backdrop transmission and legibility of the foreground content.
 - Inspect settings swatches, accent propagation, server selection, add-server focus, log wrapping and sheet dismissal in the live native preview.
 - Render synthetic light/dark dashboard, settings, add-server, logs, empty/error states, 4/8 GPUs, long names, 100% readings and minimum/default/wide windows.
-- Run the 61 Python/Swift checks and native release build. Compile the older Swift compatibility path. CI tests and builds on macOS 14 and 26.
+- Run the 65 Python/Swift checks, including menu-bar panel placement at screen edges, on short displays and on secondary displays with negative coordinates, and the native release build. Compile the older Swift compatibility path. CI tests and builds on macOS 14 and 26.
 
 Accessibility branches are reviewed without changing the user’s global settings. Offscreen README images use synthetic data and compatibility materials; they do not reproduce actual behind-window optics. Native Glass is checked separately in a running window. This does not imply manual testing on every supported macOS version.
 
