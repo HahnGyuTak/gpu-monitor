@@ -53,6 +53,8 @@ import SwiftUI
         window?.title = "GPU Monitor"
         window?.styleMask = [.titled, .closable, .miniaturizable]
         window?.setContentSize(MonitorAppearance.dashboardSize)
+        window?.isOpaque = false
+        window?.backgroundColor = .clear
         window?.center()
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)

@@ -17,7 +17,7 @@ SwiftUI와 AppKit으로 만든 작은 메뉴바 앱입니다. 기존 SSH 설정�
   <img src="docs/images/dashboard-dark.png" width="46%" alt="다크 모드 — 예시 서버의 GPU와 학습 진행률" />
 </p>
 
-*미리보기는 예시 데이터입니다. [색상·글꼴과 디자인 기준](docs/design.md)*
+*주황색을 선택한 예시 데이터의 정적 미리보기입니다. 이미지는 호환 머티리얼로 렌더링했으며, macOS 26 이상에서는 버튼과 필터에 네이티브 Liquid Glass가 적용됩니다. [디자인 기준](docs/design.md)*
 
 ## 주요 기능
 
@@ -25,6 +25,7 @@ SwiftUI와 AppKit으로 만든 작은 메뉴바 앱입니다. 기존 SSH 설정�
 | --- | --- |
 | 여러 SSH 서버 | SSH 별칭 또는 `user@host`로 등록하고 서버별 조회 제어 |
 | GPU 상태 | GPU별 사용률, VRAM, 온도와 활성 GPU를 보여주는 분할 원 아이콘 |
+| Liquid Glass 창 | macOS 26+의 네이티브 글래스 조작부, 선택 색상을 GPU 막대·창 내부 아이콘에 연동 |
 | 메뉴바 아이콘 | 분할 원 / 바코드 모양, 파랑·초록·주황·보라·흑백 선택 |
 | 메뉴바 서버 선택 | 서버 카드의 **메뉴바** 버튼으로 표시할 서버 선택·저장 |
 | 학습 진행률 | tmux의 tqdm, `step N/M`, `epoch N/M`과 ETA 감지 |
@@ -65,6 +66,17 @@ ssh training-server
 
 컨테이너 안에도 수집 도구가 필요합니다. 정확한 GPU–pane 매핑에는 호스트의 `python3`, `nvidia-smi`, Docker 조회 권한과 `/proc` 접근이 추가로 필요합니다. 매핑할 수 없으면 **GPU 연결 미확인**으로 표시하며 GPU/tmux 수집은 계속합니다.
 
+## Liquid Glass 디자인과 색상
+
+메뉴바를 눌러 열리는 창은 반투명 배경과 카드, Liquid Glass 버튼·필터로 구성됩니다. 수치와 로그에는 읽기 쉬운 표준 머티리얼을 사용합니다.
+
+- **macOS 26 이상:** 네이티브 `glassEffect`와 `GlassEffectContainer` 사용.
+- **macOS 13–15:** 같은 배치의 표준 머티리얼로 표시.
+- **투명도 줄이기:** 불투명한 표면으로 전환. **동작 줄이기:** 장식적인 전환·인터랙션 애니메이션 억제.
+- **설정에서 고른 아이콘 색상:** 창의 GPU 사용률 막대, 학습 진행률 막대, 서버·GPU 아이콘과 조작 버튼에도 즉시 적용됩니다. 오류·경고는 의미를 유지하기 위해 빨강·주황을 사용합니다.
+
+메뉴바 아이콘 자체의 모양, GPU 배치, 색상 선택과 저장 방식은 기존과 동일합니다.
+
 ## 메뉴바 아이콘 꾸미기
 
 **설정(⚙) → 메뉴바 아이콘**에서 모양과 활성 GPU 색상을 고릅니다. 선택은 즉시 적용되고 앱을 다시 실행해도 유지됩니다.
@@ -73,7 +85,7 @@ ssh training-server
 - **바코드:** GPU마다 세로 막대 하나를 왼쪽부터 GPU 번호순으로 표시합니다. 높이는 일정하며 활성 GPU만 색이 들어옵니다.
 - **색상:** 파랑, 기존 초록, 주황, 보라, 흑백. 흑백은 macOS의 라이트·다크 모드에 맞춰 바뀝니다. 비활성 GPU는 흐린 중성색으로 표시합니다.
 
-설정의 4·6·8 GPU 미리보기로 배치를 확인할 수 있습니다. 연결 끊김·일시 정지·갱신 지연 시에는 활성 색상을 끄고, 메뉴바 설명에 상태와 GPU 번호를 표시합니다. 모양·색상 설정은 메뉴바에 적용되며 서버 목록의 상태 아이콘은 파란색 분할 원을 사용합니다.
+설정의 4·6·8 GPU 미리보기로 배치를 확인할 수 있습니다. 연결 끊김·일시 정지·갱신 지연 시에는 활성 색상을 끄고, 메뉴바 설명에 상태와 GPU 번호를 표시합니다. 모양 설정은 메뉴바에 적용됩니다. 선택한 색상은 메뉴바와 창 내부에 함께 적용되며, 서버 목록은 분할 원으로 GPU 상태를 표시합니다.
 
 <p align="center">
   <img src="docs/images/menu-icons-light.png" width="46%" alt="분할 원과 바코드: 4·6·8 GPU 및 다섯 가지 색상, 라이트 모드" />
@@ -84,7 +96,7 @@ ssh training-server
 
 ## 사용 방법
 
-- **서버 이름 왼쪽 원:** 원당 최대 4분할로, 활성 GPU 조각만 파란색입니다. 4개일 때 GPU 0부터 우상단 → 우하단 → 좌하단 → 좌상단 순서입니다. GPU가 많으면 원을 여러 개 표시하며 카드가 접혀 있어도 보입니다.
+- **서버 이름 왼쪽 원:** 원당 최대 4분할로, 활성 GPU 조각만 설정에서 선택한 색상으로 표시합니다. 4개일 때 GPU 0부터 우상단 → 우하단 → 좌하단 → 좌상단 순서입니다. GPU가 많으면 원을 여러 개 표시하며 카드가 접혀 있어도 보입니다.
 - **서버의 메뉴바 버튼:** 해당 서버의 GPU 요약을 메뉴바에 표시합니다. 선택은 재실행 후에도 유지됩니다.
 - **pane의 핀:** 그 서버와 작업을 선택해 진행률·ETA를 표시합니다. 해제하면 같은 서버의 GPU 요약으로 돌아갑니다.
 - **pane의 벨:** 해당 pane의 새 오류·종료 감시를 켭니다. 설정에서 **macOS 알림**도 켜고 시스템 알림 권한을 허용하세요.
@@ -120,7 +132,7 @@ bash monitor-run python train.py --config experiment.yaml
 
 ## 소스에서 빌드
 
-macOS, Swift 5.9 이상, Python 3, Xcode 또는 Command Line Tools가 필요합니다. 외부 Swift/Python 패키지는 사용하지 않습니다.
+macOS, Swift 5.9 이상, Python 3, Xcode 또는 Command Line Tools가 필요합니다. **네이티브 Liquid Glass를 포함하려면 Xcode 26 이상(Swift 6.2+)으로 빌드하세요.** 구형 도구는 호환 머티리얼 경로를 빌드합니다. 외부 Swift/Python 패키지는 사용하지 않습니다.
 
 ```bash
 git clone https://github.com/HahnGyuTak/gpu-monitor.git
@@ -155,6 +167,7 @@ Ad-hoc 빌드는 macOS 알림 동작이 개발 서명 빌드와 다를 수 있�
 Sources/GPUMonitor/
   App.swift                 메뉴바와 앱 수명 주기
   Appearance.swift          라이트·다크 팔레트와 공통 화면 크기
+  GlassAppearance.swift     Liquid Glass·호환 머티리얼과 창 내부 색상 전달
   Views.swift               서버·GPU·tmux 화면
   Monitor.swift             폴링, 서버 선택, 알림
   Models.swift              설정과 관측 모델
@@ -170,6 +183,6 @@ scripts/                    도구 환경과 릴리스 패키징
 .github/workflows/ci.yml     macOS 테스트·빌드
 ```
 
-`bash test.sh`는 Python 검사 37개와 Swift 검사 16개, 총 **53개**를 실행합니다. 실제 학습을 종료하거나 OOM을 유발하지 않으며 합성 관측과 제어된 테스트 객체로 상태 전이를 검증합니다.
+`bash test.sh`는 Python 검사 37개와 Swift 검사 21개, 총 **58개**를 실행합니다. 실제 학습을 종료하거나 OOM을 유발하지 않으며 합성 관측과 제어된 테스트 객체로 상태 전이를 검증합니다.
 
 W&B, Slurm, Kubernetes, AMD GPU, 사용자 지정 tmux 소켓과 로그인 시 자동 실행은 현재 지원하지 않습니다. W&B 같은 추가 데이터 소스를 연결할 수 있도록 `ObservationProvider` 인터페이스를 분리해 두었습니다.

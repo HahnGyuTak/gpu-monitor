@@ -1,36 +1,34 @@
-# Interface design
+# Liquid Glass dashboard
 
-GPU Monitor uses a quiet neutral palette with a blue accent. This is a design choice informed by platform conventions and visual hierarchy guidance, not a claim that one color is universally preferred.
+The popover uses a translucent canvas, readable material cards, and native Liquid Glass for the functional controls. The menu bar renderer, segment/bar layout, activity logic, and saved icon options are unchanged.
 
-## Principles and references
+## References and interpretation
 
-- [Apple — Typography](https://developer.apple.com/design/human-interface-guidelines/typography): use the macOS system font and a clear hierarchy. SwiftUI system text uses SF Pro for supported glyphs and the system fallback for Korean; no custom font is downloaded or bundled.
-- [Apple — Color](https://developer.apple.com/design/human-interface-guidelines/color): adapt the presentation to light and dark appearances, and preserve the meaning of selection and status.
-- [Nielsen Norman Group — 5 Principles of Visual Design](https://www.nngroup.com/articles/principles-visual-design/): use size, spacing, grouping and contrast to make important information easy to find. Muted text must remain readable.
+- [Blake Crosley — Liquid Glass SwiftUI patterns](https://blakecrosley.com/ko/blog/liquid-glass-swiftui-patterns): the article's HUD pattern informs the floating controls. It distinguishes controls from content and discusses transparency, stable digits, and reduced motion. GPU readings remain normal text; the app does not apply refracting text or mirrored numbers to monitoring data.
+- [Apple — Applying Liquid Glass to custom views](https://developer.apple.com/documentation/swiftui/applying-liquid-glass-to-custom-views): `glassEffect` renders native glass; sibling controls share a `GlassEffectContainer`.
+- [Apple — Materials](https://developer.apple.com/design/human-interface-guidelines/materials): glass is used for controls; server cards and logs use standard material.
+- [Apple — Typography](https://developer.apple.com/design/human-interface-guidelines/typography): system fonts and a clear hierarchy, with monospaced digits for live values.
 
-## Applied choices
+## Layers
 
-- Neutral gray canvas, solid cards, lightly inset GPU panels. Most text is neutral; blue is reserved for activity, selection and actions.
-- 24 pt utilization readings, 19 pt app title, 12–13 pt primary interface text, and at least 11 pt secondary text. Logs alone use a monospaced face. Live numbers use monospaced digits to reduce horizontal movement.
-- A shared segmented-circle identity for the app icon and server list, with circles or barcode bars available for the menu bar. Each circle has at most four segments. Multiple circles balance the GPU count (6 → 3+3, 8 → 4+4); GPU order runs left to right across circles and clockwise inside each circle.
-- Errors retain red/orange and explicit descriptions. GPU states have a tooltip with numbers and text; menu selection also has a checkmark. Color is not the sole status cue.
-- Light/dark surfaces and secondary text colors are defined in `Appearance.swift`, rather than scattered through the interface.
-- Larger click targets in the header and a labeled “서버 추가” action. The filter uses neutral selected surfaces and a selected accessibility trait.
+The canvas uses `ultraThinMaterial` with a subtle, static tint derived from the selected color. Header actions, the filter and the add-server control use native regular glass on macOS 26+. Server cards use `regularMaterial`, with softly inset GPU panels. There is no continuously animated background.
 
-| Role | Light | Dark |
-| --- | --- | --- |
-| Accent | `#245CD6` | `#8AB4FF` |
-| Canvas | `#F3F4F6` | `#191A1E` |
-| Card | `#FFFFFF` | `#24252A` |
-| Inset panel | `#F4F5F7` | `#2C2D33` |
-| Secondary text | `#5A606B` | `#ADB3BE` |
+The numeric hierarchy remains 24 pt utilization readings, a 19 pt app title, 12–13 pt primary text and at least 11 pt secondary text. Logs use a monospaced face. Errors and warnings retain their semantic red/orange descriptions.
 
-Preview images render the actual SwiftUI dashboard with synthetic data, with no SSH server names or logs from a user's machine. Their purpose is to review layout and appearance; they are not a usability study.
+## One color selection
 
-Regenerate the bundled app icon with `bash scripts/make-icon.sh`. The mark is drawn using AppKit paths; no third-party icon asset or font is embedded.
+`monitorTheme` distributes the existing `menuIconColor` through the SwiftUI environment. GPU utilization and training progress bars, header/server/GPU icons and action symbols use that color. Blue, the original green, orange, purple and appearance-aware monochrome are available. Inactive GPU segments remain neutral; color is also accompanied by values, tooltips or selection marks.
 
-## Menu bar customization
+The selected color changes immediately in the dashboard and its sheets. No separate theme preference is stored. `GPUPieIcon.swift` and the menu bar update function have not been modified for this redesign.
 
-The dashboard keeps its blue accent. Menu bar activity can independently use blue, the original green, orange, purple, or appearance-aware monochrome. Inactive GPUs always use the same neutral treatment. The selected style and color are saved in existing preferences without resetting servers, selected jobs, or notification choices.
+## Compatibility and accessibility
 
-Bars have a constant height: each bar represents one GPU's active state, not its utilization percentage. Tooltips describe GPU numbers and the correct order for the chosen shape. The settings panel includes synthetic 4-, 6-, and 8-GPU previews and scrolls to keep lower controls reachable.
+- Native glass requires macOS 26+ and a build using Xcode 26+ / Swift 6.2+. Older systems and toolchains use the same control layout with standard material.
+- Reduce Transparency uses opaque canvas, card and control surfaces.
+- Reduce Motion disables the dashboard transition and the glass interaction effect.
+- Increased Contrast adds stronger card outlines.
+- The shape/color selection UI, keyboard actions, state descriptions and scrolling settings remain available.
+
+The README images show synthetic data rendered through the compatibility material path. Live native glass is separately checked in the running app; its optical effect depends on the system and background and is not captured by the offscreen view bitmap renderer.
+
+Regenerate the bundled app icon with `bash scripts/make-icon.sh`. That app icon and the existing menu bar icon assets are unchanged in this update.

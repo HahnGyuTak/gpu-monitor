@@ -1,21 +1,20 @@
 import AppKit
 import SwiftUI
 
-private let accent = Color(nsColor: MonitorAppearance.accent)
 private let muted = Color(nsColor: MonitorAppearance.secondaryText)
-private let surface = Color(nsColor: MonitorAppearance.surface)
 private let inset = Color(nsColor: MonitorAppearance.inset)
 private let outlineColor = Color(nsColor: MonitorAppearance.border)
 
 private struct FractionBar: View {
+    @Environment(\.monitorAccent) private var accent
     let value: Double
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Capsule().fill(outlineColor)
-                Capsule().fill(accent).frame(width: geometry.size.width * min(1, max(0, value)))
+                Capsule().fill(accent.gradient).frame(width: geometry.size.width * min(1, max(0, value)))
             }
-        }.frame(height: 4)
+        }.frame(height: 5)
     }
 }
 
@@ -23,6 +22,8 @@ struct DashboardView: View {
     @ObservedObject var monitor: Monitor
     @State private var settings = false
     @State private var adding = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var accent: Color { Color(nsColor: MonitorAppearance.iconColor(monitor.preferences.menuIconColor)) }
     @State private var filter = 0
     var body: some View {
         VStack(spacing: 0) {
@@ -30,36 +31,45 @@ struct DashboardView: View {
                 Image(nsImage: GPUPieIcon.image(for: GPUPieState(server: nil, slices: [
                     GPUPieSlice(index: 0, active: true), GPUPieSlice(index: 1, active: true),
                     GPUPieSlice(index: 2, active: false), GPUPieSlice(index: 3, active: true)
-                ], status: nil))).resizable().frame(width: 30, height: 30).accessibilityHidden(true)
+                ], status: nil), color: monitor.preferences.menuIconColor)).resizable().frame(width: 30, height: 30).accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("GPU Monitor").font(.system(size: 19, weight: .semibold))
                     Text(monitor.paused ? "모니터링 일시 정지" : "GPU와 학습 상태를 한눈에").font(.system(size: 11)).foregroundStyle(muted)
                 }
                 Spacer()
-                Button { monitor.paused.toggle(); monitor.save() } label: { Image(systemName: monitor.paused ? "play.fill" : "pause.fill").frame(width: 26, height: 28) }
-                    .help(monitor.paused ? "다시 시작" : "조회 일시 정지")
-                Button { Task { await monitor.refresh() } } label: { Image(systemName: "arrow.clockwise").frame(width: 26, height: 28) }.help("지금 새로고침")
-                    .disabled(monitor.states.values.contains { $0.isLoading } || !monitor.deletingSessions.isEmpty)
-                Button { settings.toggle() } label: { Image(systemName: settings ? "xmark" : "gearshape").frame(width: 26, height: 28) }.help("설정")
-            }
-            .buttonStyle(.borderless).padding(20)
-            Divider().opacity(0.5)
+                MonitorGlassGroup {
+                    HStack(spacing: 10) {
+                        GlassIconButton(symbol: monitor.paused ? "play.fill" : "pause.fill", label: monitor.paused ? "다시 시작" : "조회 일시 정지", selected: monitor.paused) {
+                            monitor.paused.toggle(); monitor.save()
+                        }
+                        GlassIconButton(symbol: "arrow.clockwise", label: "지금 새로고침") { Task { await monitor.refresh() } }
+                            .disabled(monitor.states.values.contains { $0.isLoading } || !monitor.deletingSessions.isEmpty)
+                        GlassIconButton(symbol: settings ? "xmark" : "gearshape", label: settings ? "설정 닫기" : "설정", selected: settings) {
+                            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) { settings.toggle() }
+                        }
+                    }
+                }
+            }.padding(.horizontal, 20).padding(.top, 20).padding(.bottom, 14)
             if settings { SettingsView(monitor: monitor) }
             else {
-                HStack {
-                    HStack(spacing: 3) {
-                        ForEach(Array(["전체", "실행 중", "감시 중"].enumerated()), id: \.offset) { index, title in
-                            Button { filter = index } label: {
-                                Text(title).font(.system(size: 12, weight: filter == index ? .semibold : .regular))
-                                    .frame(maxWidth: .infinity).padding(.vertical, 7)
-                                    .background(filter == index ? surface : Color.clear, in: RoundedRectangle(cornerRadius: 6))
-                                    .foregroundStyle(filter == index ? Color.primary : muted)
-                            }.buttonStyle(.plain).accessibilityAddTraits(filter == index ? .isSelected : [])
-                        }
-                    }.padding(3).background(inset, in: RoundedRectangle(cornerRadius: 9))
-                    Button { adding = true } label: { Label("서버 추가", systemImage: "plus").font(.system(size: 12)) }
-                        .buttonStyle(.borderless).padding(.leading, 8).help("SSH 서버 추가")
-                }.padding(.horizontal, 18).padding(.vertical, 12)
+                MonitorGlassGroup {
+                    HStack(spacing: 12) {
+                        HStack(spacing: 3) {
+                            ForEach(Array(["전체", "실행 중", "감시 중"].enumerated()), id: \.offset) { index, title in
+                                Button { filter = index } label: {
+                                    Text(title).font(.system(size: 12, weight: filter == index ? .semibold : .regular))
+                                        .frame(maxWidth: .infinity).padding(.vertical, 8)
+                                        .background(filter == index ? accent.opacity(0.13) : Color.clear, in: Capsule())
+                                        .foregroundStyle(filter == index ? accent : muted)
+                                }.buttonStyle(.plain).accessibilityAddTraits(filter == index ? .isSelected : [])
+                            }
+                        }.padding(4).glassControl(radius: 22)
+                        Button { adding = true } label: {
+                            Label("서버 추가", systemImage: "plus").font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(accent).padding(.horizontal, 13).padding(.vertical, 12)
+                        }.buttonStyle(.plain).glassControl(radius: 22).help("SSH 서버 추가")
+                    }
+                }.padding(.horizontal, 18).padding(.bottom, 16)
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 16) {
                         if monitor.preferences.servers.isEmpty {
@@ -85,14 +95,16 @@ struct DashboardView: View {
             }
         }
         .frame(width: MonitorAppearance.dashboardSize.width, height: MonitorAppearance.dashboardSize.height)
-        .background(Color(nsColor: MonitorAppearance.background))
+        .background { DashboardBackdrop() }
         .font(.system(size: 13))
-        .tint(accent)
-        .sheet(isPresented: $adding) { AddServerView(monitor: monitor) }
+        .sheet(isPresented: $adding) { AddServerView(monitor: monitor).monitorTheme(monitor.preferences.menuIconColor) }
+        .monitorTheme(monitor.preferences.menuIconColor)
     }
 }
 
 private struct ServerCard: View {
+    @Environment(\.monitorIconColor) private var iconColor
+    @Environment(\.monitorAccent) private var accent
     @ObservedObject var monitor: Monitor
     let server: ServerConfig
     let filter: Int
@@ -120,11 +132,11 @@ private struct ServerCard: View {
         VStack(alignment: .leading, spacing: 13) {
             HStack(spacing: 8) {
                 Button { expanded.toggle() } label: {
-                    Image(systemName: expanded ? "chevron.down" : "chevron.right").font(.system(size: 11, weight: .bold))
+                    Image(systemName: expanded ? "chevron.down" : "chevron.right").font(.system(size: 11, weight: .bold)).foregroundStyle(accent)
                 }.buttonStyle(.plain)
                 TimelineView(.periodic(from: .now, by: 5)) { _ in
                     let gpuState = monitor.gpuState(for: server)
-                    Image(nsImage: GPUPieIcon.image(for: gpuState))
+                    Image(nsImage: GPUPieIcon.image(for: gpuState, color: iconColor))
                         .resizable().frame(width: GPUPieIcon.size(for: gpuState).width * 1.1, height: 22)
                         .help(gpuState.toolTip).accessibilityLabel(gpuState.toolTip)
                 }
@@ -143,7 +155,7 @@ private struct ServerCard: View {
                     Label("메뉴바", systemImage: isMenuServer ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 11, weight: isMenuServer ? .semibold : .regular))
                         .fixedSize()
-                }.buttonStyle(.borderless).foregroundStyle(isMenuServer ? accent : muted)
+                }.buttonStyle(.borderless).foregroundStyle(accent)
                     .help("이 서버의 GPU 요약을 메뉴바에 표시")
                     .accessibilityLabel("\(server.alias) 메뉴바에 표시")
                     .accessibilityValue(isMenuServer ? "선택됨" : "선택 안 됨")
@@ -155,7 +167,7 @@ private struct ServerCard: View {
                         }
                     }
                     Button("서버 제거", role: .destructive) { monitor.remove(server.id) }
-                } label: { Image(systemName: "ellipsis") }.menuStyle(.borderlessButton).frame(width: 18)
+                } label: { Image(systemName: "ellipsis").foregroundStyle(accent) }.menuStyle(.borderlessButton).frame(width: 18)
             }
             if expanded {
                 if !server.enabled { Text("조회가 중지되었습니다. 아래는 마지막 확인 상태입니다.").font(.system(size: 11)).foregroundStyle(.orange) }
@@ -177,7 +189,7 @@ private struct ServerCard: View {
                         Spacer()
                         Text("\(snapshot.panes.count) panes · \(snapshot.panes.filter(\.active).count) 실행 중").font(.system(size: 11))
                         Button { Task { await monitor.refresh(serverID: server.id) } } label: {
-                            Image(systemName: "arrow.clockwise")
+                            Image(systemName: "arrow.clockwise").foregroundStyle(accent)
                         }.buttonStyle(.borderless).help("이 서버의 tmux 목록 갱신")
                             .accessibilityLabel("\(server.alias) tmux 목록 갱신")
                             .disabled(!server.enabled || state.isLoading || monitor.deletingSessions[server.id] != nil)
@@ -187,7 +199,7 @@ private struct ServerCard: View {
                             Text(message).font(.system(size: 11)).textSelection(.enabled)
                             Spacer(minLength: 4)
                             if monitor.deletingSessions[server.id] == nil {
-                                Button { monitor.sessionMessages.removeValue(forKey: server.id) } label: { Image(systemName: "xmark") }.buttonStyle(.borderless).help("메시지 닫기")
+                                Button { monitor.sessionMessages.removeValue(forKey: server.id) } label: { Image(systemName: "xmark").foregroundStyle(accent) }.buttonStyle(.borderless).help("메시지 닫기")
                             }
                         }.foregroundStyle(muted)
                     }
@@ -199,17 +211,18 @@ private struct ServerCard: View {
                     Text("GPU와 tmux 상태를 읽고 있습니다…").font(.system(size: 11)).foregroundStyle(muted).padding(.vertical, 16)
                 }
             }
-        }.padding(16).background(surface, in: RoundedRectangle(cornerRadius: 14))
-            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(isMenuServer ? accent.opacity(0.5) : outlineColor, lineWidth: 1))
+        }.padding(16).monitorCard(radius: 22)
+            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(isMenuServer ? accent.opacity(0.3) : Color.clear, lineWidth: 1))
     }
 }
 
 private struct GPUCard: View {
+    @Environment(\.monitorAccent) private var accent
     let gpu: GPU
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(alignment: .firstTextBaseline) {
-                Text("GPU \(gpu.index)").font(.system(size: 11, weight: .semibold)).foregroundStyle(muted)
+                Label { Text("GPU \(gpu.index)").foregroundStyle(muted) } icon: { Image(systemName: "cpu").foregroundStyle(accent) }.font(.system(size: 11, weight: .semibold))
                 Spacer()
                 Text(gpu.utilization.map { "\(Int($0))%" } ?? "N/A").font(.system(size: 24, weight: .semibold)).monospacedDigit().foregroundStyle(Color.primary)
             }
@@ -220,11 +233,12 @@ private struct GPUCard: View {
                 Spacer(minLength: 0)
                 Text(gpu.temperature.map { "\(Int($0))°" } ?? "—")
             }.font(.system(size: 11)).monospacedDigit().foregroundStyle(muted)
-        }.padding(12).background(inset, in: RoundedRectangle(cornerRadius: 9))
+        }.padding(12).background(inset.opacity(0.45), in: RoundedRectangle(cornerRadius: 13))
     }
 }
 
 private struct SessionSection: View {
+    @Environment(\.monitorAccent) private var accent
     @ObservedObject var monitor: Monitor
     let server: ServerConfig
     let session: String
@@ -241,7 +255,7 @@ private struct SessionSection: View {
             HStack(spacing: 8) {
                 Button { expanded.toggle() } label: {
                     HStack(spacing: 6) {
-                        if jobs.count > 1 { Image(systemName: expanded ? "chevron.down" : "chevron.right").font(.system(size: 11)) }
+                        if jobs.count > 1 { Image(systemName: expanded ? "chevron.down" : "chevron.right").font(.system(size: 11)).foregroundStyle(accent) }
                         Text(session).font(.system(size: 12, weight: .medium)).lineLimit(1)
                         Text("\(info?.paneIDs.count ?? jobs.count) panes").font(.system(size: 11)).monospacedDigit().foregroundStyle(muted)
                     }.padding(.vertical, 3)
@@ -252,7 +266,7 @@ private struct SessionSection: View {
                     ProgressView().controlSize(.mini)
                 } else {
                     Button { deletionCandidate = info } label: { Image(systemName: "trash") }
-                        .buttonStyle(.borderless).foregroundStyle(muted)
+                        .buttonStyle(.borderless).foregroundStyle(accent)
                         .disabled(!connected || busy || info?.canDelete != true)
                         .help(info?.reason ?? "목록을 갱신하여 세션 상태를 확인하세요.")
                         .accessibilityLabel("\(session) 빈 tmux 세션 삭제")
@@ -277,6 +291,7 @@ private struct SessionSection: View {
 }
 
 private struct JobRow: View {
+    @Environment(\.monitorAccent) private var accent
     @ObservedObject var monitor: Monitor
     let server: ServerConfig
     let job: JobObservation
@@ -291,9 +306,9 @@ private struct JobRow: View {
                 Circle().fill(job.state == .running ? accent : (job.state == .failed ? Color.red : Color.gray)).frame(width: 5, height: 5)
                 Text(job.pane.title).font(.system(size: 12, weight: .semibold)).lineLimit(1).help(job.pane.title)
                 Spacer(minLength: 4)
-                Button { monitor.pin(server: server.id, pane: job.pane.id) } label: { Image(systemName: isPinned ? "pin.fill" : "pin") }.foregroundStyle(isPinned ? accent : muted).help("메뉴바에 표시")
-                Button { monitor.watch(server: server.id, pane: job.pane.id) } label: { Image(systemName: isWatched ? "bell.fill" : "bell") }.foregroundStyle(isWatched ? accent : muted).help("이 pane 감시 · 시스템 알림은 설정에서 활성화")
-                Button { logs = true } label: { Image(systemName: "text.alignleft") }.foregroundStyle(muted).help("로그 미리보기")
+                Button { monitor.pin(server: server.id, pane: job.pane.id) } label: { Image(systemName: isPinned ? "pin.fill" : "pin") }.foregroundStyle(isPinned ? accent : accent.opacity(0.65)).help("메뉴바에 표시")
+                Button { monitor.watch(server: server.id, pane: job.pane.id) } label: { Image(systemName: isWatched ? "bell.fill" : "bell") }.foregroundStyle(isWatched ? accent : accent.opacity(0.65)).help("이 pane 감시 · 시스템 알림은 설정에서 활성화")
+                Button { logs = true } label: { Image(systemName: "text.alignleft") }.foregroundStyle(accent).help("로그 미리보기")
             }.buttonStyle(.borderless)
             HStack(spacing: 5) {
                 Text(job.pane.location).font(.system(size: 11)).monospacedDigit()
@@ -317,8 +332,8 @@ private struct JobRow: View {
                 else if let last = job.lastProgressAt, Date().timeIntervalSince(last) > 120 { Text("진행률이 2분 이상 갱신되지 않았습니다.").font(.system(size: 11)).foregroundStyle(.orange) }
             } else if job.state == .running { Text("진행률을 기다리는 중 · \(job.pane.workers.first?.name ?? job.pane.command)").font(.system(size: 11)).foregroundStyle(muted) }
             if let error = job.pane.captureError { Text("화면 읽기 실패: \(error)").font(.system(size: 11)).foregroundStyle(.orange) }
-        }.padding(10).background(isPinned ? accent.opacity(0.07) : inset, in: RoundedRectangle(cornerRadius: 8)).opacity(connected ? 1 : 0.5)
-            .sheet(isPresented: $logs) { LogView(server: server, pane: job.pane) }
+        }.padding(10).background(isPinned ? accent.opacity(0.08) : inset.opacity(0.40), in: RoundedRectangle(cornerRadius: 12)).opacity(connected ? 1 : 0.5)
+            .sheet(isPresented: $logs) { LogView(server: server, pane: job.pane).monitorTheme(monitor.preferences.menuIconColor) }
     }
 }
 
@@ -347,11 +362,12 @@ private struct AddServerView: View {
                     if error == nil { dismiss() }
                 }.keyboardShortcut(.defaultAction).disabled(alias.isEmpty)
             }
-        }.padding(24).frame(width: 420)
+        }.padding(24).frame(width: 420).background { DashboardBackdrop() }
     }
 }
 
 struct MenuIconSettingsView: View {
+    @Environment(\.monitorAccent) private var accent
     @ObservedObject var monitor: Monitor
 
     var body: some View {
@@ -373,8 +389,8 @@ struct MenuIconSettingsView: View {
                             Circle().fill(Color(nsColor: MonitorAppearance.iconColor(color))).frame(width: 12, height: 12)
                             Text(color.label).font(.system(size: 11, weight: selected ? .semibold : .regular))
                         }.frame(maxWidth: .infinity).padding(.vertical, 8)
-                            .background(selected ? surface : Color.clear, in: RoundedRectangle(cornerRadius: 7))
-                            .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(selected ? accent : outlineColor))
+                            .background(selected ? accent.opacity(0.10) : Color.clear, in: Capsule())
+                            .overlay(Capsule().strokeBorder(selected ? accent : outlineColor))
                     }.buttonStyle(.plain)
                         .accessibilityLabel("아이콘 색상 " + color.label)
                         .accessibilityValue(selected ? "선택됨" : "선택 안 됨")
@@ -398,13 +414,14 @@ struct MenuIconSettingsView: View {
                  ? "원당 최대 4분할 · 6개는 3+3, 8개는 4+4. 왼쪽 원부터, 각 원은 12시부터 시계 방향입니다."
                  : "GPU 번호순으로 왼쪽부터 막대 하나씩 표시합니다. 막대 높이는 사용률에 따라 변하지 않습니다.")
                 .font(.system(size: 11)).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
-            Text("활성 GPU만 선택한 색으로 표시합니다. 위 미리보기는 예시이며, 변경은 메뉴바에 바로 적용됩니다.")
+            Text("활성 GPU만 선택한 색으로 표시합니다. 위 미리보기는 예시이며, 색상은 메뉴바와 창 내부의 GPU 막대·아이콘에 함께 적용됩니다.")
                 .font(.system(size: 11)).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
         }
     }
 }
 
 private struct SettingsView: View {
+    @Environment(\.monitorAccent) private var accent
     @ObservedObject var monitor: Monitor
     var body: some View {
         VStack(spacing: 0) {
@@ -430,7 +447,7 @@ private struct SettingsView: View {
             }
             Divider()
             HStack {
-                Text("GPU Monitor 0.4.0").font(.system(size: 11)).foregroundStyle(muted)
+                Text("GPU Monitor 0.5.0").font(.system(size: 11)).foregroundStyle(muted)
                 Spacer()
                 Button("앱 종료") { NSApplication.shared.terminate(nil) }
             }.padding(.horizontal, 24).padding(.vertical, 14)
@@ -457,6 +474,6 @@ private struct LogView: View {
                     .font(.system(size: 12, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
             }.padding(12).background(inset, in: RoundedRectangle(cornerRadius: 8))
             Text("읽기 전용 스냅샷 · 원격 터미널에 입력을 보내지 않습니다.").font(.system(size: 11)).foregroundStyle(muted)
-        }.padding(20).frame(width: 440, height: 430)
+        }.padding(20).frame(width: 440, height: 430).background { DashboardBackdrop() }
     }
 }
