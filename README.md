@@ -157,7 +157,7 @@ bash monitor-run python train.py --config experiment.yaml
 
 ## 소스에서 빌드
 
-macOS, Swift 5.9 이상, Python 3, Xcode 또는 Command Line Tools가 필요합니다. **네이티브 Liquid Glass를 포함하려면 Xcode 26 이상(Swift 6.2+)으로 빌드하세요.** 구형 도구는 표준 머티리얼과 컨트롤을 사용하는 호환 경로를 빌드합니다. 외부 Swift/Python 패키지는 사용하지 않습니다.
+macOS, Swift 5.9 이상, Python 3, Xcode 또는 Command Line Tools가 필요합니다. **네이티브 Liquid Glass를 포함하려면 Xcode 26 이상(Swift 6.2+)으로 빌드하세요.** 구형 도구는 표준 머티리얼과 컨트롤을 사용하는 호환 경로를 빌드합니다. 배포 스크립트는 native 빌드 엔진을 사용하고 실행 파일의 SDK 링크 버전을 검증해 최신 macOS의 디자인이 호환 외형으로 내려가지 않도록 합니다. 최소 실행 버전은 macOS 13으로 유지합니다. 외부 Swift/Python 패키지는 사용하지 않습니다.
 
 ```bash
 git clone https://github.com/HahnGyuTak/gpu-monitor.git

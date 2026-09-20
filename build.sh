@@ -5,7 +5,15 @@ output_dir="$project_dir/dist"
 build_dir="$project_dir/.build/release-build"
 source "$project_dir/scripts/toolchain.sh"
 mkdir -p "$output_dir"
-swift build --disable-sandbox --package-path "$project_dir" --scratch-path "$build_dir" --cache-path "$project_dir/.build/swift-cache" -c release
+# Keep the SDK link version distinct from the macOS 13 deployment target. The Swift Build
+# engine in Xcode 27 can record the deployment target as the SDK, opting out of native Glass.
+swift build --build-system native --disable-sandbox --package-path "$project_dir" --scratch-path "$build_dir" --cache-path "$project_dir/.build/swift-cache" -c release
+linked_sdk="$(xcrun vtool -show-build "$build_dir/release/GPUMonitor" | awk '$1 == "sdk" {print $2; exit}')"
+build_sdk="$(xcrun --sdk macosx --show-sdk-version)"
+if [ "${linked_sdk%%.*}" != "${build_sdk%%.*}" ]; then
+    printf 'SDK link version mismatch: linked %s, building with %s\n' "$linked_sdk" "$build_sdk" >&2
+    exit 1
+fi
 # Sign outside synced folders, whose Finder metadata can be rewritten during signing.
 staging_dir="$(mktemp -d "${TMPDIR:-/tmp}/gpu-monitor-build.XXXXXX")"
 trap 'rm -rf "$staging_dir"' EXIT

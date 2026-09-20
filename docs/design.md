@@ -6,6 +6,7 @@ GPU Monitor uses the installed macOS design system: AppKit owns the window mater
 
 | Observed problem | Change |
 | --- | --- |
+| The Xcode 27 Swift Build release executable recorded SDK 13 despite compiling with a newer SDK, causing compatibility control appearance | Build releases with the native SwiftPM engine and verify the linked SDK major version against the selected SDK before packaging. Keep the macOS 13 minimum deployment target |
 | Add Server still had a separate sheet presentation material, thin opaque text fields and a default SSH menu | Give its native sheet the same AppKit Glass root and neutral backing as the dashboard, denser Glass input wells, a system-colored editing focus ring and a native Glass menu button. Preserve sheet modality, input state, cancellation and content-driven sizing |
 | Job filters left every server card visible, making their effect and scope unclear | Replace them with All / Running / Querying server filters, a visible definition, matching/total counts and actionable empty states |
 | A custom accent focus outline also appeared after a mouse selection, dominating the Glass surface | Remove the drawn accent outline and selected-surface tint. Use neutral interactive regular Glass for selection and native focus effects only during keyboard navigation |
