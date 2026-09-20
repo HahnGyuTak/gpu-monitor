@@ -180,14 +180,88 @@ struct RowIconButton: View {
 }
 
 struct MonitorSegmentedPicker<Value: Hashable>: View {
+    @Environment(\.monitorAccent) private var accent
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.isEnabled) private var enabled
+    @FocusState private var focusedOption: Value?
     let label: String
     let options: [(Value, String)]
     @Binding var selection: Value
-    var body: some View {
-        Picker(label, selection: $selection) {
+
+    @ViewBuilder var body: some View {
+        #if compiler(>=6.2)
+        if #available(macOS 26.0, *), !reduceTransparency { glassPicker }
+        else { nativePicker }
+        #else
+        nativePicker
+        #endif
+    }
+
+    private var nativePicker: some View {
+        Picker(label, selection: Binding(get: { selection }, set: {
+            selection = $0
+            focusedOption = $0
+        })) {
             ForEach(options, id: \.0) { value, title in Text(title).tag(value) }
         }.pickerStyle(.segmented).labelsHidden().accessibilityLabel(label)
     }
+
+    #if compiler(>=6.2)
+    @available(macOS 26.0, *)
+    private var glassPicker: some View {
+        GlassEffectContainer(spacing: 0) {
+            HStack(spacing: 0) {
+                ForEach(options, id: \.0) { value, title in
+                    let selected = selection == value
+                    Button {
+                        selection = value
+                        focusedOption = value
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "checkmark").font(.caption2.weight(.semibold))
+                                .foregroundStyle(enabled ? accent : Color(nsColor: .disabledControlTextColor))
+                                .opacity(selected ? 1 : 0).accessibilityHidden(true)
+                            Text(title).font(.callout.weight(selected ? .semibold : .regular))
+                                .foregroundStyle(enabled ? Color.primary : Color(nsColor: .disabledControlTextColor))
+                                .lineLimit(1)
+                        }.padding(.horizontal, 10).frame(maxWidth: .infinity, minHeight: 28)
+                            .contentShape(Capsule())
+                    }.buttonStyle(.plain).focusable(interactions: .edit)
+                        .focused($focusedOption, equals: value)
+                        .focusEffectDisabled()
+                        .background {
+                            if selected {
+                                Capsule().fill(.clear)
+                                    .glassEffect(.regular.tint(enabled ? accent.opacity(0.18) : nil).interactive(), in: .capsule)
+                            }
+                        }
+                        .overlay {
+                            if focusedOption == value {
+                                Capsule().strokeBorder(accent, lineWidth: 2)
+                            } else if selected && contrast == .increased {
+                                Capsule().strokeBorder(Color.primary.opacity(0.55), lineWidth: 1)
+                            }
+                        }
+                }
+            }.padding(3)
+                .glassEffect(.regular, in: .capsule)
+        }
+        // Keep a single-choice picker for VoiceOver, including its selected value and actions.
+        .accessibilityRepresentation { nativePicker }
+        .onMoveCommand { direction in
+            guard enabled, let current = options.firstIndex(where: { $0.0 == focusedOption }) else { return }
+            let next: Int
+            switch direction {
+            case .left: next = max(0, current - 1)
+            case .right: next = min(options.count - 1, current + 1)
+            default: return
+            }
+            selection = options[next].0
+            focusedOption = options[next].0
+        }
+    }
+    #endif
 }
 
 struct AccentLabel: View {

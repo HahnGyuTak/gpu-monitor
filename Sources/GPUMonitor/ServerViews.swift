@@ -6,9 +6,17 @@ struct ServerCard: View {
     @ObservedObject var monitor: Monitor
     let server: ServerConfig
     let filter: JobFilter
-    @State private var expanded = true
+    @State private var expanded: Bool
     @State private var removing = false
     @State private var logPane: Pane?
+
+    @MainActor init(monitor: Monitor, server: ServerConfig, filter: JobFilter) {
+        self.monitor = monitor
+        self.server = server
+        self.filter = filter
+        _expanded = State(initialValue: monitor.menuServer?.id == server.id)
+    }
+
     private var state: ServerViewState { monitor.states[server.id] ?? ServerViewState() }
     private var isMenuServer: Bool { monitor.menuServer?.id == server.id }
     private var busy: Bool { state.isLoading || monitor.deletingSessions[server.id] != nil }
@@ -29,6 +37,8 @@ struct ServerCard: View {
             header
             if expanded { content }
         }.padding(12).monitorSurface(.panel, radius: 16, selected: isMenuServer)
+            // Follow a new menu target, while keeping manual disclosure changes during polling.
+            .onChange(of: isMenuServer) { expanded = $0 }
             .alert("서버를 목록에서 제거할까요?", isPresented: $removing) {
                 Button("취소", role: .cancel) { }
                 Button("목록에서 제거", role: .destructive) { monitor.remove(server.id) }
