@@ -24,7 +24,7 @@ import SwiftUI
         updateStatusItem()
         // Age the icon even when a server stops returning snapshots.
         statusTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.updateStatusItem() }
+            Task { @MainActor [weak self] in self?.updateStatusItem() }
         }
         monitor.start()
         if CommandLine.arguments.contains("--show-window") { showDashboard() }

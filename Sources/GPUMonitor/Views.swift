@@ -355,7 +355,7 @@ private struct SettingsView: View {
             Text("맥이 잠들거나 앱이 종료되면 조회가 멈춥니다. 다시 연결하면 현재 상태를 확인하지만, 그 사이 사라진 로그는 복구하지 못합니다.").font(.caption).foregroundStyle(muted)
             Spacer()
             HStack {
-                Text("GPU Monitor 0.2.1").font(.caption).foregroundStyle(muted)
+                Text("GPU Monitor 0.2.2").font(.caption).foregroundStyle(muted)
                 Spacer()
                 Button("앱 종료") { NSApplication.shared.terminate(nil) }
             }
