@@ -19,4 +19,14 @@ enum MonitorAppearance {
     static let inset = adaptive(light: 0xF4F5F7, dark: 0x2C2D33)
     static let secondaryText = adaptive(light: 0x5A606B, dark: 0xADB3BE)
     static let border = adaptive(light: 0xDCDFE5, dark: 0x3B3D46)
+
+    static func iconColor(_ selection: MenuIconColor) -> NSColor {
+        switch selection {
+        case .blue: return accent
+        case .green: return NSColor(srgbRed: 0.08, green: 0.72, blue: 0.49, alpha: 1)
+        case .orange: return adaptive(light: 0xCD610A, dark: 0xFFAD66)
+        case .purple: return adaptive(light: 0x8051C7, dark: 0xC2A2FF)
+        case .monochrome: return .labelColor
+        }
+    }
 }

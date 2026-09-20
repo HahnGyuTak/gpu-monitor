@@ -125,7 +125,7 @@ private struct ServerCard: View {
                 TimelineView(.periodic(from: .now, by: 5)) { _ in
                     let gpuState = monitor.gpuState(for: server)
                     Image(nsImage: GPUPieIcon.image(for: gpuState))
-                        .resizable().frame(width: 22, height: 22)
+                        .resizable().frame(width: GPUPieIcon.size(for: gpuState).width * 1.1, height: 22)
                         .help(gpuState.toolTip).accessibilityLabel(gpuState.toolTip)
                 }
                 VStack(alignment: .leading, spacing: 3) {
@@ -351,31 +351,90 @@ private struct AddServerView: View {
     }
 }
 
+struct MenuIconSettingsView: View {
+    @ObservedObject var monitor: Monitor
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("메뉴바 아이콘").font(.headline)
+            Picker("모양", selection: Binding(get: { monitor.preferences.menuIconStyle }, set: { monitor.preferences.menuIconStyle = $0; monitor.save() })) {
+                ForEach(MenuIconStyle.allCases, id: \.self) { style in
+                    Text(style.label).tag(style)
+                }
+            }.pickerStyle(.segmented)
+            HStack(spacing: 6) {
+                ForEach(MenuIconColor.allCases, id: \.self) { color in
+                    let selected = monitor.preferences.menuIconColor == color
+                    Button {
+                        monitor.preferences.menuIconColor = color
+                        monitor.save()
+                    } label: {
+                        HStack(spacing: 5) {
+                            Circle().fill(Color(nsColor: MonitorAppearance.iconColor(color))).frame(width: 12, height: 12)
+                            Text(color.label).font(.system(size: 11, weight: selected ? .semibold : .regular))
+                        }.frame(maxWidth: .infinity).padding(.vertical, 8)
+                            .background(selected ? surface : Color.clear, in: RoundedRectangle(cornerRadius: 7))
+                            .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(selected ? accent : outlineColor))
+                    }.buttonStyle(.plain)
+                        .accessibilityLabel("아이콘 색상 " + color.label)
+                        .accessibilityValue(selected ? "선택됨" : "선택 안 됨")
+                        .accessibilityAddTraits(selected ? .isSelected : [])
+                }
+            }
+            HStack(spacing: 16) {
+                Text("미리보기").font(.system(size: 11)).foregroundStyle(muted)
+                Spacer(minLength: 0)
+                ForEach([4, 6, 8], id: \.self) { count in
+                    VStack(spacing: 6) {
+                        Image(nsImage: GPUPieIcon.image(for: GPUPieState(server: nil, slices: (0..<count).map {
+                            GPUPieSlice(index: $0, active: $0 % 3 != 1)
+                        }, status: nil), style: monitor.preferences.menuIconStyle, color: monitor.preferences.menuIconColor))
+                            .accessibilityHidden(true)
+                        Text("\(count) GPU").font(.system(size: 11)).foregroundStyle(muted)
+                    }.frame(minWidth: 54)
+                }
+            }.padding(12).background(inset, in: RoundedRectangle(cornerRadius: 8))
+            Text(monitor.preferences.menuIconStyle == .circles
+                 ? "원당 최대 4분할 · 6개는 3+3, 8개는 4+4. 왼쪽 원부터, 각 원은 12시부터 시계 방향입니다."
+                 : "GPU 번호순으로 왼쪽부터 막대 하나씩 표시합니다. 막대 높이는 사용률에 따라 변하지 않습니다.")
+                .font(.system(size: 11)).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
+            Text("활성 GPU만 선택한 색으로 표시합니다. 위 미리보기는 예시이며, 변경은 메뉴바에 바로 적용됩니다.")
+                .font(.system(size: 11)).foregroundStyle(muted).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
 private struct SettingsView: View {
     @ObservedObject var monitor: Monitor
     var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            Text("모니터링 설정").font(.headline)
-            Picker("조회 간격", selection: Binding(get: { monitor.preferences.interval }, set: { monitor.preferences.interval = $0; monitor.save() })) {
-                Text("5초").tag(5.0); Text("10초").tag(10.0); Text("30초").tag(30.0); Text("60초").tag(60.0)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    MenuIconSettingsView(monitor: monitor)
+                    Divider()
+                    Text("모니터링 설정").font(.headline)
+                    Picker("조회 간격", selection: Binding(get: { monitor.preferences.interval }, set: { monitor.preferences.interval = $0; monitor.save() })) {
+                        Text("5초").tag(5.0); Text("10초").tag(10.0); Text("30초").tag(30.0); Text("60초").tag(60.0)
+                    }
+                    Toggle("간결한 메뉴바 표시", isOn: Binding(get: { monitor.preferences.compact }, set: { monitor.preferences.compact = $0; monitor.save() }))
+                    Divider()
+                    Toggle("macOS 알림", isOn: Binding(get: { monitor.preferences.notifications }, set: { monitor.setNotifications($0) }))
+                    Text("벨을 켠 pane에서 새 오류 로그·프로세스 종료·pane 소멸을 감지합니다. 처음 연결할 때의 과거 로그는 알리지 않습니다.").font(.system(size: 11)).foregroundStyle(muted)
+                    if let message = monitor.notificationMessage { Text(message).font(.system(size: 11)).foregroundStyle(accent) }
+                    Button("테스트 알림 보내기") { monitor.testNotification() }
+                    if let notice = monitor.lastNotice { Text("최근 이벤트\n\(notice)").font(.system(size: 11)).foregroundStyle(muted) }
+                    Divider()
+                    Text("GPU 사용률은 GPU 전체 기준입니다. 진행률은 로그의 현재 단계 기준이며, 100%만으로 정상 완료를 판단하지 않습니다.").font(.system(size: 11)).foregroundStyle(muted)
+                    Text("맥이 잠들거나 앱이 종료되면 조회가 멈춥니다. 다시 연결하면 현재 상태를 확인하지만, 그 사이 사라진 로그는 복구하지 못합니다.").font(.system(size: 11)).foregroundStyle(muted)
+                }.padding(24).frame(maxWidth: .infinity, alignment: .leading)
             }
-            Toggle("간결한 메뉴바 표시", isOn: Binding(get: { monitor.preferences.compact }, set: { monitor.preferences.compact = $0; monitor.save() }))
             Divider()
-            Toggle("macOS 알림", isOn: Binding(get: { monitor.preferences.notifications }, set: { monitor.setNotifications($0) }))
-            Text("벨을 켠 pane에서 새 오류 로그·프로세스 종료·pane 소멸을 감지합니다. 처음 연결할 때의 과거 로그는 알리지 않습니다.").font(.system(size: 11)).foregroundStyle(muted)
-            if let message = monitor.notificationMessage { Text(message).font(.system(size: 11)).foregroundStyle(accent) }
-            Button("테스트 알림 보내기") { monitor.testNotification() }
-            if let notice = monitor.lastNotice { Text("최근 이벤트\n\(notice)").font(.system(size: 11)).foregroundStyle(muted) }
-            Divider()
-            Text("GPU 사용률은 GPU 전체 기준입니다. 진행률은 로그의 현재 단계 기준이며, 100%만으로 정상 완료를 판단하지 않습니다.").font(.system(size: 11)).foregroundStyle(muted)
-            Text("맥이 잠들거나 앱이 종료되면 조회가 멈춥니다. 다시 연결하면 현재 상태를 확인하지만, 그 사이 사라진 로그는 복구하지 못합니다.").font(.system(size: 11)).foregroundStyle(muted)
-            Spacer()
             HStack {
-                Text("GPU Monitor 0.3.0").font(.system(size: 11)).foregroundStyle(muted)
+                Text("GPU Monitor 0.4.0").font(.system(size: 11)).foregroundStyle(muted)
                 Spacer()
                 Button("앱 종료") { NSApplication.shared.terminate(nil) }
-            }
-        }.padding(24).frame(maxWidth: .infinity, maxHeight: .infinity)
+            }.padding(.horizontal, 24).padding(.vertical, 14)
+        }.frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

@@ -32,10 +32,11 @@ import SwiftUI
 
     private func updateStatusItem() {
         let state = monitor.menuGPUState
-        statusItem.button?.image = GPUPieIcon.image(for: state)
+        let style = monitor.preferences.menuIconStyle
+        statusItem.button?.image = GPUPieIcon.image(for: state, style: style, color: monitor.preferences.menuIconColor)
         statusItem.button?.title = " " + monitor.menuTitle
-        statusItem.button?.toolTip = state.toolTip
-        statusItem.button?.setAccessibilityLabel(state.toolTip + "\n" + monitor.menuTitle)
+        statusItem.button?.toolTip = state.toolTip(for: style)
+        statusItem.button?.setAccessibilityLabel(state.toolTip(for: style) + "\n" + monitor.menuTitle)
     }
 
     @objc func togglePopover() {

@@ -8,6 +8,24 @@ struct ServerConfig: Codable, Identifiable, Equatable {
     var enabled = true
 }
 
+enum MenuIconStyle: String, Codable, CaseIterable {
+    case circles, bars
+    var label: String { self == .circles ? "분할 원" : "바코드" }
+}
+
+enum MenuIconColor: String, Codable, CaseIterable {
+    case blue, green, orange, purple, monochrome
+    var label: String {
+        switch self {
+        case .blue: return "파랑"
+        case .green: return "초록"
+        case .orange: return "주황"
+        case .purple: return "보라"
+        case .monochrome: return "흑백"
+        }
+    }
+}
+
 struct Preferences: Codable {
     var servers: [ServerConfig] = []
     var selected: String? = nil
@@ -16,6 +34,24 @@ struct Preferences: Codable {
     var notifications = false
     var interval = 10.0
     var compact = false
+    var menuIconStyle = MenuIconStyle.circles
+    var menuIconColor = MenuIconColor.blue
+}
+
+extension Preferences {
+    // Decode older preferences without resetting servers, pins or notification choices.
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        servers = try values.decodeIfPresent([ServerConfig].self, forKey: .servers) ?? []
+        selected = try values.decodeIfPresent(String.self, forKey: .selected)
+        menuServerID = try values.decodeIfPresent(String.self, forKey: .menuServerID)
+        watched = try values.decodeIfPresent(Set<String>.self, forKey: .watched) ?? []
+        notifications = try values.decodeIfPresent(Bool.self, forKey: .notifications) ?? false
+        interval = try values.decodeIfPresent(Double.self, forKey: .interval) ?? 10
+        compact = try values.decodeIfPresent(Bool.self, forKey: .compact) ?? false
+        menuIconStyle = (try? values.decode(MenuIconStyle.self, forKey: .menuIconStyle)) ?? .circles
+        menuIconColor = (try? values.decode(MenuIconColor.self, forKey: .menuIconColor)) ?? .blue
+    }
 }
 
 struct GPU: Decodable, Identifiable {

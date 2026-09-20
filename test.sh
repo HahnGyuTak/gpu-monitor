@@ -21,3 +21,10 @@ swiftc -parse-as-library -module-cache-path "$project_dir/.build/module-cache" \
     "$project_dir/Tests/Swift/MonitorTests.swift" \
     -o "$project_dir/.build/checks/gpu-monitor-integration-checks"
 "$project_dir/.build/checks/gpu-monitor-integration-checks"
+swiftc -parse-as-library -module-cache-path "$project_dir/.build/module-cache" \
+    "$project_dir/Sources/GPUMonitor/Models.swift" \
+    "$project_dir/Sources/GPUMonitor/Appearance.swift" \
+    "$project_dir/Sources/GPUMonitor/GPUPieIcon.swift" \
+    "$project_dir/Tests/Swift/MenuIconTests.swift" \
+    -o "$project_dir/.build/checks/gpu-monitor-icon-checks"
+"$project_dir/.build/checks/gpu-monitor-icon-checks"
