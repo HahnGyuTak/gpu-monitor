@@ -14,7 +14,12 @@ extension EnvironmentValues {
     private let hosting: NSHostingController<AnyView>
 
     init(rootView: Content) {
-        hosting = NSHostingController(rootView: AnyView(rootView.environment(\.windowGlassProvided, true)))
+        hosting = NSHostingController(rootView: AnyView(rootView
+            .environment(\.windowGlassProvided, true)
+            .background {
+                // Keep the base calm even over bright windows; Glass still supplies blur and its native edge.
+                Color(nsColor: .windowBackgroundColor).opacity(0.55).ignoresSafeArea()
+            }))
         super.init(nibName: nil, bundle: nil)
     }
     required init?(coder: NSCoder) { fatalError("Use init(rootView:)") }
@@ -25,7 +30,8 @@ extension EnvironmentValues {
         #if compiler(>=6.2)
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView()
-            glass.style = .clear
+            // Regular glass softens the desktop behind the entire window, including gaps between panels.
+            glass.style = .regular
             glass.cornerRadius = 20
             glass.contentView = hosting.view
             surface = glass

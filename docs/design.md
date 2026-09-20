@@ -2,7 +2,7 @@
 
 GPU Monitor uses the installed macOS design system: AppKit owns the window material, SwiftUI supplies native controls and content surfaces, and system fonts and SF Symbols supply the typography and icons. Menu bar geometry and monitoring behavior are unchanged.
 
-## Observations and changes — 0.9.0
+## Observations and changes — 0.9.1
 
 | Observed problem | Change |
 | --- | --- |
@@ -10,17 +10,17 @@ GPU Monitor uses the installed macOS design system: AppKit owns the window mater
 | Color names repeated information already visible in each color chip, adding five button-shaped boxes | Use compact color swatches with an outer selection ring, like the system Appearance choices. Keep names in tooltips and accessibility labels |
 | Several controls had both their native background and an additional custom Glass outline | Remove duplicate backings from segmented pickers, menus, header and footer. Preserve native focus and disabled states |
 | Selected panels combined a color wash, gradient, multiple drawn rim strokes and shadow | Use native tinted Glass with an explicit menu-bar checkmark; remove simulated reflections and added shadows |
-| Completely clear Glass allowed strong background text to compete with readings | Keep the window clear, but give content panels and reading wells progressively denser semantic backings |
+| The clear window base let strong desktop colors and text show through the header, footer and gaps between panels | Switch the base to native regular Glass and add a 55% semantic window-background backing inside its content. Keep the existing content backings and control styling |
 
 ## Window and content materials
 
-`GlassHostingController` owns the material at the actual AppKit window boundary. On macOS 26+ it embeds the SwiftUI hosting view in `NSGlassEffectView.contentView` with the system clear Glass style. The independent window uses a transparent titlebar and background while retaining real window buttons, safe areas, resizing and frame restoration. The popover uses the same hosting controller.
+`GlassHostingController` owns the material at the actual AppKit window boundary. On macOS 26+ it embeds the SwiftUI hosting view in `NSGlassEffectView.contentView` with the system regular Glass style. The independent window uses a transparent titlebar and background while retaining real window buttons, safe areas, resizing and frame restoration. The popover uses the same hosting controller.
 
 The SwiftUI root knows when the native window already supplies Glass, so it does not place another full-window material over it. Server and log sheets use the system ultra-thin presentation material (macOS 13.3+) under their Glass content and controls, keeping native sheet sizing and dismissal. Older systems use a behind-window `NSVisualEffectView` with the popover material.
 
 | Layer | Used for | Treatment |
 | --- | --- | --- |
-| Window | Dashboard and settings backdrop | Native clear Glass; receives the actual window behind it |
+| Window | Dashboard and settings backdrop | Native regular Glass plus a 55% semantic neutral backing; softens the actual background across the entire window |
 | Controls | Actions, pickers, menus, checkboxes and fields | Native styles and system focus, selection and disabled behavior |
 | Panels | Servers, settings, input form, empty state | Native regular Glass with a 38% semantic neutral backing |
 | Reading wells | GPU table, tmux sessions, pinned job and logs | Native regular Glass with a denser 58% semantic neutral backing |
